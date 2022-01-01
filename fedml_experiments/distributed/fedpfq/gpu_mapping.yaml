@@ -7,9 +7,9 @@
 #     host_name_node_m: [num_of_processes_on_GPU0, num_of_processes_on_GPU1, num_of_processes_on_GPU2, num_of_processes_on_GPU3, ..., num_of_processes_on_GPU_n]
 
 
-# this is used for 10 clients and 1 server training within a single machine which has 4 GPUs
+# this is used for 3 clients and 1 server training within a single machine which has 4 GPUs
 mapping_default:
-    ChaoyangHe-GPU-RTX2080Tix4: [3, 3, 3, 2]
+    Hong_GPU_V40: [1, 1, 1, 1]
 
 # this is used for 4 clients and 1 server training within a single machine which has 4 GPUs
 mapping_config1_5:

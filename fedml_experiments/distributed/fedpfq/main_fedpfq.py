@@ -32,7 +32,7 @@ from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_dat
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
 from fedml_api.model.cv.cnn import CNN_DropOut
-from fedml_api.model.cv.resnet_dorefa import resnet18_dorefa
+from fedml_api.model.cv.resnet_dorefa import resnet18_dorefa, resnet50_dorefa, resnet34_dorefa
 from fedml_api.model.cv.resnet_gn import resnet18
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.cv.resnet import resnet56
@@ -82,11 +82,13 @@ def add_args(parser):
 
     parser.add_argument("--backend", type=str, default="MPI", help="Backend for Server and Client")
 
+    parser.add_argument("--gbit", type=int, default=32, help="the gradient bit-width")
+
+    parser.add_argument("--wbit", type=int, default=32, help="the weight bit-width")
+
+    parser.add_argument("--abit", type=int, default=32, help="the activation bit-width")
+
     parser.add_argument("--lr", type=float, default=0.001, metavar="LR", help="learning rate (default: 0.001)")
-
-    parser.add_argument("--bit", type=int, default=32, help="the weight and activation bit-width")
-
-    parser.add_argument("--gbit", type=int, default=16, help="the gradient bit-width")
 
     parser.add_argument("--wd", help="weight decay parameter;", type=float, default=0.0001)
 
@@ -95,7 +97,7 @@ def add_args(parser):
     parser.add_argument("--comm_round", type=int, default=10, help="how many round of communications we shoud use")
 
     parser.add_argument(
-        "--is_mobile", type=int, default=1, help="whether the program is running on the FedML-Mobile server side"
+        "--is_mobile", type=int, default=0, help="whether the program is running on the FedML-Mobile server side"
     )
 
     parser.add_argument("--frequency_of_the_test", type=int, default=1, help="the frequency of the algorithms")
@@ -371,16 +373,24 @@ def create_model(args, model_name, output_dim):
     elif model_name == "cnn" and args.dataset == "femnist":
         logging.info("CNN + FederatedEMNIST")
         model = CNN_DropOut(False)
-    elif model_name == "resnet18_pfq" and args.dataset == "fed_cifar100":
-        logging.info("ResNet18 + pfq + Federated_CIFAR100")
-        model = resnet18_dorefa(bit=args.bit, num_classes=100).cuda()
+    elif model_name == "resnet18_dorefa" and args.dataset == "fed_cifar100":
+        logging.info("ResNet18 + DoReFa + Federated_CIFAR100")
+        model = resnet18_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=100).cuda()
     elif model_name == "resnet18" and args.dataset == "fed_cifar100":
         logging.info("ResNet18_GN + Federated_CIFAR100")
         model = resnet18()
 
-    elif model_name == "resnet18_pfq" and args.dataset == "cifar10":
-        logging.info("ResNet18 + PFQ + cifar10")
-        model = resnet18_dorefa(bit=args.bit, num_classes=10).cuda()
+    elif model_name == "resnet18_dorefa" and args.dataset == "cifar10":
+        logging.info("ResNet18 + DoReFa + cifar10")
+        model = resnet18_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
+
+    elif model_name == "resnet34_dorefa" and args.dataset == "cifar10":
+        logging.info("ReesNet34 + DoReFa + cifar10")
+        model = resnet34_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
+
+    elif model_name == "resnet50_dorefa" and args.dataset == "cifar10":
+        logging.info("ReesNet50 + DoReFa + cifar10")
+        model = resnet50_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
 
     elif model_name == "rnn" and args.dataset == "fed_shakespeare":
         logging.info("RNN + fed_shakespeare")
@@ -447,14 +457,20 @@ if __name__ == "__main__":
         wandb.init(
             # project="federated_nas",
             project="fedml",
-            name="FedAVG(d)"
+            name="FedDoReFa-"
             + str(args.partition_method)
-            + "r"
+            + "-r"
             + str(args.comm_round)
             + "-e"
             + str(args.epochs)
             + "-lr"
-            + str(args.lr),
+            + str(args.lr)
+            + "-wbit"
+            + str(args.wbit)
+            + "-abit"
+            + str(args.abit)
+            + "-gbit"
+            + str(args.gbit),
             config=args,
         )
 

@@ -32,7 +32,7 @@ from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_dat
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
 from fedml_api.model.cv.cnn import CNN_DropOut
-from fedml_api.model.cv.resnet_dorefa import resnet18_dorefa
+from fedml_api.model.cv.resnet_dorefa import resnet18_dorefa, resnet50_dorefa, resnet34_dorefa
 from fedml_api.model.cv.resnet_gn import resnet18
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.cv.resnet import resnet56
@@ -383,6 +383,14 @@ def create_model(args, model_name, output_dim):
     elif model_name == "resnet18_dorefa" and args.dataset == "cifar10":
         logging.info("ResNet18 + DoReFa + cifar10")
         model = resnet18_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
+
+    elif model_name == "resnet34_dorefa" and args.dataset == "cifar10":
+        logging.info("ReesNet34 + DoReFa + cifar10")
+        model = resnet34_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
+
+    elif model_name == "resnet50_dorefa" and args.dataset == "cifar10":
+        logging.info("ReesNet50 + DoReFa + cifar10")
+        model = resnet50_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
 
     elif model_name == "rnn" and args.dataset == "fed_shakespeare":
         logging.info("RNN + fed_shakespeare")
