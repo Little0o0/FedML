@@ -41,8 +41,10 @@ from fedml_api.model.linear.lr import LogisticRegression
 from fedml_api.model.cv.mobilenet_v3 import MobileNetV3
 from fedml_api.model.cv.efficientnet import EfficientNet
 
-from fedml_api.distributed.feddorefa.FedAvgAPI import FedML_init, FedML_FedAvg_distributed
+from fedml_api.model.cv.resnet_dorefa import resnet18_dorefa, resnet50_dorefa, resnet34_dorefa
+from fedml_api.distributed.fedpfq.FedAvgAPI import FedML_init, FedML_FedAvg_distributed
 
+from fedml_api.model.cv.resnet_pfq import resnet34_pfq
 
 def add_args(parser):
     """
@@ -387,6 +389,10 @@ def create_model(args, model_name, output_dim):
     elif model_name == "resnet34_dorefa" and args.dataset == "cifar10":
         logging.info("ReesNet34 + DoReFa + cifar10")
         model = resnet34_dorefa(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
+
+    elif model_name == "resnet34_pfq" and args.dataset == "cifar10":
+        logging.info("ReesNet34 + PFQ + cifar10")
+        model = resnet34_pfq(wbit=args.wbit, abit=args.abit, gbit=args.gbit, num_classes=10).cuda()
 
     elif model_name == "resnet50_dorefa" and args.dataset == "cifar10":
         logging.info("ReesNet50 + DoReFa + cifar10")

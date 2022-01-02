@@ -9,7 +9,7 @@
 
 # this is used for 3 clients and 1 server training within a single machine which has 4 GPUs
 mapping_default:
-    Hong_GPU_V40: [1, 1, 1, 1]
+    Hong_GPU_V40: [1, 2, 0, 0]
 
 # this is used for 4 clients and 1 server training within a single machine which has 4 GPUs
 mapping_config1_5:

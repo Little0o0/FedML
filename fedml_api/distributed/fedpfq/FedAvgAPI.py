@@ -5,9 +5,9 @@ from .FedAVGTrainer import FedAVGTrainer
 from .FedAvgClientManager import FedAVGClientManager
 from .FedAvgServerManager import FedAVGServerManager
 
-from ...standalone.feddorefa.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
-from ...standalone.feddorefa.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
-from ...standalone.feddorefa.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
+from ...standalone.fedpfq.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
+from ...standalone.fedpfq.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
+from ...standalone.fedpfq.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
 # from ...standalone.fedavg.my_model_trainer_classification import MyModelTrainer_PFQ as MyModelTrainerPFQ
 # # from ...standalone.fedavg.my_model_trainer_classification import MyModelTrainer_DoReFa as MyModelTrainerDoReFa
 

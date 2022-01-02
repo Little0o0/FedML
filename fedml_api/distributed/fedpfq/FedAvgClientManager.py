@@ -17,7 +17,6 @@ from .utils import transform_list_to_tensor, transform_tensor_to_list, post_comp
 import torch
 
 
-
 class FedAVGClientManager(ClientManager):
     def __init__(self, args, trainer, comm=None, rank=0, size=0, backend="MPI"):
         super().__init__(args, comm, rank, size, backend)
