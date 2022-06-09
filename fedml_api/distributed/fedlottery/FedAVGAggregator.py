@@ -35,6 +35,9 @@ class FedAVGAggregator(object):
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
 
+    def set_init_prune_model(self,):
+        self.trainer.init_prune_loop(self.val_global, self.device, self.args)
+
     def get_global_model_params(self):
         return self.trainer.get_model_params()
 
@@ -72,6 +75,8 @@ class FedAVGAggregator(object):
         # logging.info("################aggregate: %d" % len(model_list))
         (num0, averaged_params) = model_list[0]
         for k in averaged_params.keys():
+            if "mask" in k:
+                logging.info(k)
             for i in range(0, len(model_list)):
                 local_sample_number, local_model_params = model_list[i]
                 w = local_sample_number / training_num
@@ -106,6 +111,13 @@ class FedAVGAggregator(object):
             return sample_testset
         else:
             return self.test_global
+
+
+    def val_on_server_for_all_clients(self):
+        # this evaluates the model on all clients with their val data set,
+        # For simplicity, the eval process will complete on server.
+        pass
+
 
     def test_on_server_for_all_clients(self, round_idx):
         if self.trainer.test_on_the_server(self.train_data_local_dict, self.test_data_local_dict, self.device, self.args):

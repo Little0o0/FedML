@@ -5,6 +5,7 @@ class MyMessage(object):
     # server to client
     MSG_TYPE_S2C_INIT_CONFIG = 1
     MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT = 2
+    # MSG_TYPE_S2C_INIT_MODEL = 5
 
     # client to server
     MSG_TYPE_C2S_SEND_MODEL_TO_SERVER = 3
@@ -28,5 +29,6 @@ class MyMessage(object):
     MSG_ARG_KEY_TEST_CORRECT = "test_correct"
     MSG_ARG_KEY_TEST_ERROR = "test_error"
     MSG_ARG_KEY_TEST_NUM = "test_num_sample"
+    MSG_ARG_KEY_MODEL = "model"
 
 

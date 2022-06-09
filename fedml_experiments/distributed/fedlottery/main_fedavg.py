@@ -41,7 +41,6 @@ from fedml_api.model.cv.mobilenet_v3 import MobileNetV3
 from fedml_api.model.cv.efficientnet import EfficientNet
 
 from fedml_api.distributed.fedlottery.FedAvgAPI import FedML_init, FedML_FedAvg_distributed
-from fedml_api.model.cv.fedlottery_model.resnet import ResNet, BottleNeck
 
 def add_args(parser):
     """
@@ -394,7 +393,14 @@ def create_model(args, model_name, output_dim):
         logging.info("CNN + stackoverflow_nwp")
         model = RNN_StackOverFlow()
     elif model_name == "resnet50":
-        model = ResNet(BottleNeck, [3, 4, 6, 3], output_dim, 1.0)
+        if args.baseline not in ["SNIP", "GraSP","SynFlow"]:
+            from fedml_api.model.cv.fedlottery_model.resnet import resnet50
+            model = resnet50(output_dim)
+        else:
+            from fedml_api.model.cv.pruning_baselines.Models.tinyimagenet_resnet import resnet50
+            # logging.info("!!!!!!!!! load the model from baseline architecture !!!!!!")
+            model = resnet50(output_dim)
+
     elif model_name == "resnet56":
         model = resnet56(class_num=output_dim)
     elif model_name == "mobilenet":
@@ -407,7 +413,6 @@ def create_model(args, model_name, output_dim):
         model = EfficientNet()
 
     return model
-
 
 if __name__ == "__main__":
     # quick fix for issue in MacOS environment: https://github.com/openai/spinningup/issues/16

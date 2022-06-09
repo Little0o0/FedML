@@ -28,8 +28,18 @@ class FedAVGClientManager(ClientManager):
     def register_message_receive_handlers(self):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_INIT_CONFIG,
                                               self.handle_message_init)
+        # self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_INIT_MODEL,
+        #                                       self.handle_message_init_model)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT,
                                               self.handle_message_receive_model_from_server)
+
+    # def handle_message_init_model(self, msg_params):
+    #     global_model = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL)
+    #     client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+    #     self.trainer.model = global_model
+    #     self.trainer.update_dataset(int(client_index))
+    #     self.round_idx = 0
+    #     self.__train()
 
     def handle_message_init(self, msg_params):
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)

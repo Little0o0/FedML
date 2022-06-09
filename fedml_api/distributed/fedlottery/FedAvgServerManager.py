@@ -1,3 +1,4 @@
+import copy
 import logging
 import os, signal
 import sys
@@ -27,6 +28,20 @@ class FedAVGServerManager(ServerManager):
 
     def run(self):
         super().run()
+
+    def init_prune(self):
+        if not self.args.prune or self.args.baseline not in ["SNIP", "GraSP","SynFlow"]:
+            return
+        else:
+            self.aggregator.set_init_prune_model()
+
+    # def send_init_model(self):
+    #     client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
+    #                                                      self.args.client_num_in_total)
+    #     global_model = self.aggregator.trainer.model
+    #     for process_id in range(1, self.size):
+    #         self.send_message_init_model(process_id, copy.deepcopy(global_model).cpu(), client_indexes[process_id - 1])
+
 
     def send_init_msg(self):
         # sampling clients
@@ -80,6 +95,12 @@ class FedAVGServerManager(ServerManager):
             for receiver_id in range(1, self.size):
                 self.send_message_sync_model_to_client(receiver_id, global_model_params,
                                                        client_indexes[receiver_id - 1])
+
+    # def send_message_init_model(self, receive_id, global_model, client_index):
+    #     message = Message(MyMessage.MSG_TYPE_S2C_INIT_MODEL, self.get_sender_id(), receive_id)
+    #     message.add_params(MyMessage.MSG_ARG_KEY_MODEL, global_model)
+    #     message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
+    #     self.send_message(message)
 
     def send_message_init_config(self, receive_id, global_model_params, client_index):
         message = Message(MyMessage.MSG_TYPE_S2C_INIT_CONFIG, self.get_sender_id(), receive_id)

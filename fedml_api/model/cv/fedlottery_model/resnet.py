@@ -278,11 +278,11 @@ def resnet34():
     return ResNet(BasicBlock, [3, 4, 6, 3])
 
 
-def resnet50():
+def resnet50(num_classes):
     """
     return a ResNet-50 model
     """
-    return ResNet(BottleNeck, [3, 4, 6, 3])
+    return ResNet(BottleNeck, [3, 4, 6, 3], num_classes, 1.0)
 
 
 def resnet101():
@@ -299,8 +299,8 @@ def resnet152():
     return ResNet(BottleNeck, [3, 8, 36, 3])
 
 
-if __name__ == "__main__":
-    from torchsummary import summary
-
-    resnet50 = ResNet(BottleNeck, [3, 4, 6, 3], 100)
-    summary(resnet50, (3, 32, 32))
+# if __name__ == "__main__":
+#     from torchsummary import summary
+#
+#     resnet50 = ResNet(BottleNeck, [3, 4, 6, 3], 100)
+#     summary(resnet50, (3, 32, 32))

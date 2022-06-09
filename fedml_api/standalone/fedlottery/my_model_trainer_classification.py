@@ -2,9 +2,13 @@ import logging
 
 import torch
 from torch import nn
+import numpy as np
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
+    from fedml_api.initpruning.Pruners.pruners import SNIP, GraSP, SynFlow
+    from fedml_api.initpruning.Utils.generator import masked_parameters
+    from fedml_api.initpruning.Utils.prune import prune_loop
 except ImportError:
     from FedML.fedml_core.trainer.model_trainer import ModelTrainer
 
@@ -15,6 +19,25 @@ class MyModelTrainer(ModelTrainer):
 
     def set_model_params(self, model_parameters):
         self.model.load_state_dict(model_parameters, strict=False)
+
+
+    def init_prune_loop(self, prune_data, device, args, epochs = 1, schedule = "exponential", scope="local",
+                        reinitialize=False, train_mode=False, shuffle=False, invert=False):
+        pruner = None
+        self.model.to(device)
+        if args.baseline == "SNIP":
+            pruner = SNIP(masked_parameters(self.model, 0, 0, 0))
+        elif args.baseline == "GraSP":
+            pruner = GraSP(masked_parameters(self.model, 0, 0, 0))
+        elif args.baseline == "SynFlow":
+            pruner = SynFlow(masked_parameters(self.model, 0, 0, 0))
+        else:
+            logging.info(f"have not implement {args.baseline} yet !!!!")
+            quit()
+        sparsity = args.density
+        loss = nn.CrossEntropyLoss()
+        prune_loop(self.model, loss, pruner, prune_data, device, sparsity,
+                   schedule, scope, epochs, reinitialize, train_mode, shuffle, invert)
 
     def train(self, train_data, device, args):
         model = self.model
