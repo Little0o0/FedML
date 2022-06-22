@@ -32,7 +32,7 @@ class FedAVGTrainer(object):
         self.args.round_idx = round_idx
         self.trainer.train(self.train_local, self.device, self.args)
 
-        weights = self.trainer.get_model_params()
+        weights = self.trainer.get_model_params(noMask=True)
 
         # transform Tensor to list
         if self.args.is_mobile == 1:

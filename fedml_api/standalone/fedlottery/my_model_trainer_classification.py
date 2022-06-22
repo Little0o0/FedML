@@ -14,8 +14,12 @@ except ImportError:
 
 
 class MyModelTrainer(ModelTrainer):
-    def get_model_params(self):
-        return self.model.cpu().state_dict()
+    def get_model_params(self, noMask=False):
+        if noMask:
+            params =  self.model.cpu().state_dict()
+            return {key: params[key] for key in params.keys() if "mask" not in key}
+        else:
+            return self.model.cpu().state_dict()
 
     def set_model_params(self, model_parameters):
         self.model.load_state_dict(model_parameters, strict=False)
@@ -38,6 +42,7 @@ class MyModelTrainer(ModelTrainer):
         loss = nn.CrossEntropyLoss()
         prune_loop(self.model, loss, pruner, prune_data, device, sparsity,
                    schedule, scope, epochs, reinitialize, train_mode, shuffle, invert)
+
 
     def train(self, train_data, device, args):
         model = self.model
