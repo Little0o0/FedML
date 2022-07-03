@@ -20,7 +20,7 @@ class FedAVGAggregator(object):
         self.args = args
         self.train_global = train_global
         self.test_global = test_global
-        self.val_global = self._generate_validation_set()
+        self.val_global = self._generate_validation_set(self.args.batch_size)
         self.all_train_data_num = all_train_data_num
 
         self.train_data_local_dict = train_data_local_dict
@@ -109,8 +109,15 @@ class FedAVGAggregator(object):
             subset = torch.utils.data.Subset(self.test_global.dataset, sample_indices)
             sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
             return sample_testset
+        # else:
+        #     return self.test_global
         else:
-            return self.test_global
+            # one batch data on server for pruning
+            test_data_num = len(self.test_global.dataset)
+            sample_indices = random.sample(range(test_data_num), min(num_samples, test_data_num))
+            subset = torch.utils.data.Subset(self.test_global.dataset, sample_indices)
+            sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
+            return sample_testset
 
 
     def val_on_server_for_all_clients(self):
@@ -125,41 +132,42 @@ class FedAVGAggregator(object):
 
         if round_idx % self.args.frequency_of_the_test == 0 or round_idx == self.args.comm_round - 1:
             logging.info("################test_on_server_for_all_clients : {}".format(round_idx))
-            train_num_samples = []
-            train_tot_corrects = []
-            train_losses = []
-            for client_idx in range(self.args.client_num_in_total):
-                # train data
-                metrics = self.trainer.test(self.train_data_local_dict[client_idx], self.device, self.args)
-                train_tot_correct, train_num_sample, train_loss = metrics['test_correct'], metrics['test_total'], metrics['test_loss']
-                train_tot_corrects.append(copy.deepcopy(train_tot_correct))
-                train_num_samples.append(copy.deepcopy(train_num_sample))
-                train_losses.append(copy.deepcopy(train_loss))
-
-                """
-                Note: CI environment is CPU-based computing. 
-                The training speed for RNN training is to slow in this setting, so we only test a client to make sure there is no programming error.
-                """
-                if self.args.ci == 1:
-                    break
-
-            # test on training dataset
-            train_acc = sum(train_tot_corrects) / sum(train_num_samples)
-            train_loss = sum(train_losses) / sum(train_num_samples)
-            wandb.log({"Train/Acc": train_acc, "round": round_idx})
-            wandb.log({"Train/Loss": train_loss, "round": round_idx})
-            stats = {'training_acc': train_acc, 'training_loss': train_loss}
-            logging.info(stats)
+            # train_num_samples = []
+            # train_tot_corrects = []
+            # train_losses = []
+            # for client_idx in range(self.args.client_num_in_total):
+            #     # train data
+            #     metrics = self.trainer.test(self.train_data_local_dict[client_idx], self.device, self.args)
+            #     train_tot_correct, train_num_sample, train_loss = metrics['test_correct'], metrics['test_total'], metrics['test_loss']
+            #     train_tot_corrects.append(copy.deepcopy(train_tot_correct))
+            #     train_num_samples.append(copy.deepcopy(train_num_sample))
+            #     train_losses.append(copy.deepcopy(train_loss))
+            #
+            #     """
+            #     Note: CI environment is CPU-based computing.
+            #     The training speed for RNN training is to slow in this setting, so we only test a client to make sure there is no programming error.
+            #     """
+            #     if self.args.ci == 1:
+            #         break
+            #
+            # # test on training dataset
+            # train_acc = sum(train_tot_corrects) / sum(train_num_samples)
+            # train_loss = sum(train_losses) / sum(train_num_samples)
+            # wandb.log({"Train/Acc": train_acc, "round": round_idx})
+            # wandb.log({"Train/Loss": train_loss, "round": round_idx})
+            # stats = {'training_acc': train_acc, 'training_loss': train_loss}
+            # logging.info(stats)
 
             # test data
             test_num_samples = []
             test_tot_corrects = []
             test_losses = []
 
-            if round_idx == self.args.comm_round - 1:
-                metrics = self.trainer.test(self.test_global, self.device, self.args)
-            else:
-                metrics = self.trainer.test(self.val_global, self.device, self.args)
+            metrics = self.trainer.test(self.test_global, self.device, self.args)
+            # if round_idx == self.args.comm_round - 1:
+            #     metrics = self.trainer.test(self.test_global, self.device, self.args)
+            # else:
+            #     metrics = self.trainer.test(self.val_global, self.device, self.args)
                 
             test_tot_correct, test_num_sample, test_loss = metrics['test_correct'], metrics['test_total'], metrics[
                 'test_loss']

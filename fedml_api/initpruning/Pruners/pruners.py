@@ -118,7 +118,6 @@ class SNIP(Pruner):
             data, target = data.to(device), target.to(device)
             output = model(data)
             loss(output, target).backward()
-            break
 
         # calculate score |g * theta|
         for m, p in self.masked_parameters:
