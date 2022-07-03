@@ -159,7 +159,7 @@ def _resnet(arch, block, num_block, base_width, num_classes, dense_classifier, p
         model.load_state_dict(model_dict)
     return model
 
-def resnet18(input_shape, num_classes, dense_classifier=False, pretrained=False):
+def resnet18(num_classes, dense_classifier=False, pretrained=False):
     """ return a ResNet 18 object
     """
     return _resnet('resnet18', BasicBlock, [2, 2, 2, 2], 64, num_classes, dense_classifier, pretrained)

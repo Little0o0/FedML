@@ -25,7 +25,7 @@ class MyModelTrainer(ModelTrainer):
         self.model.load_state_dict(model_parameters, strict=False)
 
 
-    def init_prune_loop(self, prune_data, device, args, epochs = 1, schedule = "exponential", scope="local",
+    def init_prune_loop(self, prune_data, device, args, epochs = 5, schedule = "exponential", scope="local",
                         reinitialize=False, train_mode=False, shuffle=False, invert=False):
         pruner = None
         self.model.to(device)

@@ -184,7 +184,7 @@ class ResNet(nn.Module):
             nn.BatchNorm2d(int(64 * small_dense_density)),
             nn.ReLU(inplace=True),
         )
-        # we use a different inputsize than the original paper
+        # we use a different input size than the original paper
         # so conv2_x's stride is 1
         self.conv2_x = self._make_layer(
             block, int(64 * small_dense_density), num_block[0], 1
@@ -264,11 +264,11 @@ class ResNet(nn.Module):
         return F.log_softmax(output, dim=1)
 
 
-def resnet18():
+def resnet18(num_classes):
     """
     return a ResNet-18 model
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    return ResNet(BasicBlock, [2, 2, 2, 2], num_classes, 1.0)
 
 
 def resnet34():

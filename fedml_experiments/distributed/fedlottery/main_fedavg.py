@@ -392,6 +392,15 @@ def create_model(args, model_name, output_dim):
     elif model_name == "rnn" and args.dataset == "stackoverflow_nwp":
         logging.info("CNN + stackoverflow_nwp")
         model = RNN_StackOverFlow()
+
+    elif model_name == "resnet18":
+        if args.baseline not in ["SNIP", "GraSP","SynFlow"]:
+            from fedml_api.model.cv.fedlottery_model.resnet import resnet18
+            model = resnet18(output_dim)
+        else:
+            from fedml_api.model.cv.pruning_baselines.Models.tinyimagenet_resnet import resnet18
+            model = resnet18(output_dim)
+
     elif model_name == "resnet50":
         if args.baseline not in ["SNIP", "GraSP","SynFlow"]:
             from fedml_api.model.cv.fedlottery_model.resnet import resnet50
