@@ -380,9 +380,9 @@ def create_model(args, model_name, output_dim):
     elif model_name == "cnn" and args.dataset == "femnist":
         logging.info("CNN + FederatedEMNIST")
         model = CNN_DropOut(False)
-    elif model_name == "resnet18_gn" and args.dataset == "fed_cifar100":
-        logging.info("ResNet18_GN + Federated_CIFAR100")
-        model = resnet18()
+    # elif model_name == "resnet18_gn" and args.dataset == "fed_cifar100":
+    #     logging.info("ResNet18_GN + Federated_CIFAR100")
+    #     model = resnet18()
     elif model_name == "rnn" and args.dataset == "fed_shakespeare":
         logging.info("RNN + fed_shakespeare")
         model = RNN_OriginalFedAvg()
@@ -394,7 +394,7 @@ def create_model(args, model_name, output_dim):
         model = RNN_StackOverFlow()
 
     elif model_name == "resnet18":
-        if args.baseline not in ["SNIP", "GraSP","SynFlow"]:
+        if args.baseline not in ["SNIP", "GraSP","SynFlow", "Mag", "Random"]:
             from fedml_api.model.cv.fedlottery_model.resnet import resnet18
             model = resnet18(output_dim)
         else:

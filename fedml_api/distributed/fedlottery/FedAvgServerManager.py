@@ -30,7 +30,7 @@ class FedAVGServerManager(ServerManager):
         super().run()
 
     def init_prune(self):
-        if not self.args.prune or self.args.baseline not in ["SNIP", "GraSP","SynFlow"]:
+        if not self.args.prune or self.args.baseline not in ["SNIP", "GraSP","SynFlow", "Mag", "Random"]:
             return
         else:
             self.aggregator.set_init_prune_model()

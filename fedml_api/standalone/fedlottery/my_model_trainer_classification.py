@@ -6,7 +6,7 @@ import numpy as np
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
-    from fedml_api.initpruning.Pruners.pruners import SNIP, GraSP, SynFlow
+    from fedml_api.initpruning.Pruners.pruners import SNIP, GraSP, SynFlow, Mag, Rand
     from fedml_api.initpruning.Utils.generator import masked_parameters
     from fedml_api.initpruning.Utils.prune import prune_loop
 except ImportError:
@@ -35,6 +35,10 @@ class MyModelTrainer(ModelTrainer):
             pruner = GraSP(masked_parameters(self.model, 0, 0, 0))
         elif args.baseline == "SynFlow":
             pruner = SynFlow(masked_parameters(self.model, 0, 0, 0))
+        elif args.baseline == "Mag":
+            pruner = Mag(masked_parameters(self.model, 0, 0, 0))
+        elif args.baseline == "Random":
+            pruner = Rand(masked_parameters(self.model, 0, 0, 0))
         else:
             logging.info(f"have not implement {args.baseline} yet !!!!")
             quit()
