@@ -25,7 +25,7 @@ class MyModelTrainer(ModelTrainer):
         self.model.load_state_dict(model_parameters, strict=False)
 
 
-    def init_prune_loop(self, prune_data, device, args, epochs = 5, schedule = "exponential", scope="local",
+    def init_prune_loop(self, prune_data, device, args, epochs, schedule = "exponential", scope="local",
                         reinitialize=False, train_mode=False, shuffle=False, invert=False):
         pruner = None
         self.model.to(device)
@@ -40,17 +40,18 @@ class MyModelTrainer(ModelTrainer):
         elif args.baseline == "Random":
             pruner = Rand(masked_parameters(self.model, 0, 0, 0))
         else:
-            logging.info(f"have not implement {args.baseline} yet !!!!")
-            quit()
+            raise Exception(f"have not implement {args.baseline} yet !!!!")
         sparsity = args.density
         loss = nn.CrossEntropyLoss()
         prune_loop(self.model, loss, pruner, prune_data, device, sparsity,
                    schedule, scope, epochs, reinitialize, train_mode, shuffle, invert)
 
 
-    def train(self, train_data, device, args):
-        model = self.model
+    def train(self, train_data, device, args, epochs=None):
+        if epochs is None:
+            epochs = args.epochs
 
+        model = self.model
         model.to(device)
         model.train()
 
@@ -63,7 +64,8 @@ class MyModelTrainer(ModelTrainer):
                                          weight_decay=args.wd, amsgrad=True)
 
         epoch_loss = []
-        for epoch in range(args.epochs):
+
+        for epoch in range(epochs):
             batch_loss = []
             for batch_idx, (x, labels) in enumerate(train_data):
                 x, labels = x.to(device), labels.to(device)

@@ -27,7 +27,7 @@ from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_m
 from fedml_api.data_preprocessing.ImageNet.data_loader import load_partition_data_ImageNet
 from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_data_landmarks
 
-from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
+from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10, load_partition_data_cifar10_v2
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
@@ -141,7 +141,13 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="noise-uniform-magnitude",
                         help="[erdos-renyi-magnitude|uniform-magnitude|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
 
-    parser.add_argument("--baseline", type=str, default="none", help="[SNIP|GraSP|SynFlow|iterative|PruneFL|none]")
+    parser.add_argument("--baseline", type=str, default="none", help="[SNIP|GraSP|SynFlow|iterative|PruneFL|Mag|Random|none]")
+
+    parser.add_argument("--n_shots", type=int, default=1, help="the number of shot for pre training and pruning")
+
+    parser.add_argument("--pre_train_epochs", type=int, default=3, help="the number of epochs for pre training")
+
+    parser.add_argument("--init_prune_epochs", type=int, default=5, help="the number of epochs for init pruning methods: [SNIP|GraSP|SynFlow|Mag|Random]")
 
     args = parser.parse_args()
     return args
@@ -330,13 +336,14 @@ def load_data(args, dataset_name):
 
     else:
         if dataset_name == "cifar10":
-            data_loader = load_partition_data_cifar10
+            # data_loader = load_partition_data_cifar10
+            data_loader = load_partition_data_cifar10_v2
         elif dataset_name == "cifar100":
             data_loader = load_partition_data_cifar100
         elif dataset_name == "cinic10":
             data_loader = load_partition_data_cinic10
         else:
-            data_loader = load_partition_data_cifar10
+            data_loader = load_partition_data_cifar10_v2
 
         (
             train_data_num,

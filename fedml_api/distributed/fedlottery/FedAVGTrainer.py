@@ -15,9 +15,29 @@ class FedAVGTrainer(object):
         self.train_local = None
         self.local_sample_number = None
         self.test_local = None
+        # self.val_local = None
 
         self.device = device
         self.args = args
+
+        # self.val_data_local_dict, self.val_data_local_num_dict = self.generate_val_data_local_dict(train_data_local_dict, 0.1)
+
+
+
+    # def generate_val_data_local_dict(self, dataloader_dict, ratio):
+    #     val_data_local_dict = {}
+    #     val_data_local_num_dict = {}
+    #     for key, dataloader in dataloader_dict.items():
+    #         train_data_num = len(dataloader.dataset)
+    #         sample_indices = random.sample(range(train_data_num), int(ratio * train_data_num))
+    #
+    #         # a bug at here, It should use specific Dataset
+    #         subset = torch.utils.data.Subset(dataloader.dataset, sample_indices)
+    #         sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
+    #         val_data_local_dict[key] = sample_testset
+    #         val_data_local_num_dict[key] = len(sample_indices)
+    #
+    #     return val_data_local_dict, val_data_local_num_dict
 
     def update_model(self, weights):
         self.trainer.set_model_params(weights)
@@ -27,6 +47,7 @@ class FedAVGTrainer(object):
         self.train_local = self.train_data_local_dict[client_index]
         self.local_sample_number = self.train_data_local_num_dict[client_index]
         self.test_local = self.test_data_local_dict[client_index]
+        # self.val_local = self.val_data_local_dict[client_index]
 
     def train(self, round_idx = None):
         self.args.round_idx = round_idx

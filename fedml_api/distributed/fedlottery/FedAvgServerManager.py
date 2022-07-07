@@ -29,11 +29,12 @@ class FedAVGServerManager(ServerManager):
     def run(self):
         super().run()
 
-    def init_prune(self):
-        if not self.args.prune or self.args.baseline not in ["SNIP", "GraSP","SynFlow", "Mag", "Random"]:
-            return
-        else:
-            self.aggregator.set_init_prune_model()
+    def pre_train(self, epochs):
+        logging.info("Begin pretraining !!!!!")
+        self.aggregator.train(epochs)
+
+    def init_prune_model(self, epochs):
+        self.aggregator.set_baseline_init_prune_model(epochs)
 
     # def send_init_model(self):
     #     client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,

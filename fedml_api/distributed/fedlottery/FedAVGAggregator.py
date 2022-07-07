@@ -20,12 +20,14 @@ class FedAVGAggregator(object):
         self.args = args
         self.train_global = train_global
         self.test_global = test_global
-        self.val_global = self._generate_validation_set(self.args.batch_size)
+        # self.val_global = self._generate_validation_set(n_shots=self.args.n_shots)
         self.all_train_data_num = all_train_data_num
 
         self.train_data_local_dict = train_data_local_dict
         self.test_data_local_dict = test_data_local_dict
         self.train_data_local_num_dict = train_data_local_num_dict
+
+        # self.val_data_local_dict, self.val_data_local_num_dict = self.generate_val_data_local_dict(train_data_local_dict, 0.1)
 
         self.worker_num = worker_num
         self.device = device
@@ -35,8 +37,26 @@ class FedAVGAggregator(object):
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
 
-    def set_init_prune_model(self,):
-        self.trainer.init_prune_loop(self.val_global, self.device, self.args)
+    def train(self, epochs):
+        self.trainer.train(self.train_global, self.device, self.args, epochs)
+
+
+    # def generate_val_data_local_dict(self, dataloader_dict, ratio):
+    #     val_data_local_dict = {}
+    #     val_data_local_num_dict = {}
+    #     for key, dataloader in dataloader_dict.items():
+    #         train_data_num = len(dataloader.dataset)
+    #         sample_indices = random.sample(range(train_data_num), int(ratio * train_data_num))
+    #         subset = torch.utils.data.Subset(dataloader.dataset, sample_indices)
+    #         sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
+    #         val_data_local_dict[key] = sample_testset
+    #         val_data_local_num_dict[key] = len(sample_indices)
+    #
+    #     logging.info(f"val data local num dict is : {val_data_local_num_dict}")
+    #     return val_data_local_dict, val_data_local_num_dict
+
+    def set_baseline_init_prune_model(self, epochs):
+        self.trainer.init_prune_loop(self.train_global, self.device, self.args, epochs=epochs)
 
     def get_global_model_params(self):
         return self.trainer.get_model_params()
@@ -102,22 +122,26 @@ class FedAVGAggregator(object):
         logging.info("client_indexes = %s" % str(client_indexes))
         return client_indexes
 
-    def _generate_validation_set(self, num_samples=10000):
+    def _generate_validation_set(self, num_samples=10000, n_shots=1):
         if self.args.dataset.startswith("stackoverflow"):
             test_data_num  = len(self.test_global.dataset)
             sample_indices = random.sample(range(test_data_num), min(num_samples, test_data_num))
             subset = torch.utils.data.Subset(self.test_global.dataset, sample_indices)
             sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
             return sample_testset
-        # else:
-        #     return self.test_global
         else:
-            # one batch data on server for pruning
-            test_data_num = len(self.test_global.dataset)
-            sample_indices = random.sample(range(test_data_num), min(num_samples, test_data_num))
-            subset = torch.utils.data.Subset(self.test_global.dataset, sample_indices)
-            sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
-            return sample_testset
+            return self.test_global
+        # elif self.args.dataset == "cifar10":
+        #     # implement val split
+        #     sample_indices = []
+        #     label_set = set(self.test_global.dataset.target)
+        #     for label in label_set:
+        #          sample_indices += random.sample(np.where(label == self.test_global.dataset.target), n_shots)
+        #     subset = torch.utils.data.Subset(self.test_global.dataset, sample_indices)
+        #     sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
+        #     return sample_testset
+        # else:
+        #     raise Exception(f"Did not implement data split for {self.args.dataset} dataset")
 
 
     def val_on_server_for_all_clients(self):
@@ -165,7 +189,7 @@ class FedAVGAggregator(object):
 
             metrics = self.trainer.test(self.test_global, self.device, self.args)
             # if round_idx == self.args.comm_round - 1:
-            #     metrics = self.trainer.test(self.test_global, self.device, self.args)
+            #     metrics = self.trainer.test(self.test_global,s self.device, self.args)
             # else:
             #     metrics = self.trainer.test(self.val_global, self.device, self.args)
                 

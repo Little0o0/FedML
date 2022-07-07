@@ -121,11 +121,11 @@ def init_server(
             is_preprocessed=True,
             preprocessed_client_lists=preprocessed_sampling_lists,
         )
-    server_manager.init_prune()
-    # how to send the mask to client?
-    # if args.prune and args.baseline in ["SNIP", "GraSP", "SynFlow"]:
-    #     server_manager.send_init_model()
-    # else:
+
+    server_manager.pre_train(epochs=args.pre_train_epochs)
+    if args.prune and args.baseline in ["SNIP", "GraSP", "SynFlow", "Mag", "Random"]:
+        server_manager.init_prune_model(args.init_prune_epochs)
+
     server_manager.send_init_msg()
     server_manager.run()
 
