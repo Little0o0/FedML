@@ -469,25 +469,20 @@ if __name__ == "__main__":
 
     # initialize the wandb machine learning experimental tracking platform (https://www.wandb.com/).
     if process_id == 0:
-
-        if args.baseline == "none":
-            wandb.init(
-                project="FedLottery",
-                name=f"{args.baseline}_D{args.density}_{args.model}_{args.dataset}",
-                config=args
-            )
+        msg = f"_{args.client_num_in_total}|{args.client_num_per_round}_{args.model}_{args.dataset}"
+        if args.prune == 0:
+            msg = "Dense_D1.0" + msg
+        elif args.baseline != "none":
+            msg = f"{args.baseline}_D{args.density}" + msg
         else:
-            if args.prune == 0:
-                density = 1
-            else:
-                density = args.density
+            msg = f"ABNS{args.ABNS}_SFt{args.SFt}_D{args.density}" + msg
 
-            wandb.init(
-                # project="federated_nas",
-                project="FedLottery",
-                name=f"Prune{args.prune}_ABNS{args.ABNS}_SFt{args.SFt}_D{density}_{args.model}_{args.dataset}",
-                config=args,
-            )
+        wandb.init(
+            # project="federated_nas",
+            project="FedLottery",
+            name=msg,
+            config=args,
+        )
 
     # Set the random seed. The np.random seed determines the dataset partition.
     # The torch_manual_seed determines the initial weight.
