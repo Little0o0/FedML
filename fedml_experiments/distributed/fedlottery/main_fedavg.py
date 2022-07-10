@@ -29,7 +29,7 @@ from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_da
 
 from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10, load_partition_data_cifar10_v2
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
-from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
+from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10, load_partition_data_cinic10_v2
 
 from fedml_api.model.cv.cnn import CNN_DropOut
 from fedml_api.model.cv.resnet_gn import resnet18
@@ -341,7 +341,7 @@ def load_data(args, dataset_name):
         elif dataset_name == "cifar100":
             data_loader = load_partition_data_cifar100
         elif dataset_name == "cinic10":
-            data_loader = load_partition_data_cinic10
+            data_loader = load_partition_data_cinic10_v2
         else:
             data_loader = load_partition_data_cifar10_v2
 
