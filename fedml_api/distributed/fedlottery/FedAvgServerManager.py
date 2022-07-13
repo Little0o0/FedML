@@ -2,7 +2,7 @@ import copy
 import logging
 import os, signal
 import sys
-
+import torch
 from .message_define import MyMessage
 from .utils import transform_tensor_to_list, post_complete_message_to_sweep_process
 
@@ -11,6 +11,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../../FedML"
 try:
     from fedml_core.distributed.communication.message import Message
     from fedml_core.distributed.server.server_manager import ServerManager
+    from fedml_api.sparselearning.core import Masking
+    from fedml_api.sparselearning.funcs.decay import CosineDecay
 except ImportError:
     from FedML.fedml_core.distributed.communication.message import Message
     from FedML.fedml_core.distributed.server.server_manager import ServerManager
@@ -25,6 +27,9 @@ class FedAVGServerManager(ServerManager):
         self.round_idx = 0
         self.is_preprocessed = is_preprocessed
         self.preprocessed_client_lists = preprocessed_client_lists
+        self.mode = 0
+        self.candidate_paths = []
+        # mode 0 regular fedavg, mode 1 for candidate pools, mode 2 for ABNS, mode 3 for SFt
 
     def run(self):
         super().run()
@@ -36,6 +41,46 @@ class FedAVGServerManager(ServerManager):
     def init_prune_model(self, epochs):
         self.aggregator.set_baseline_init_prune_model(epochs)
 
+    def generate_lottery_pool(self, path = "./lottery_pool"):
+        if not os.path.exists(path):
+            os.mkdir(path)
+        pool_name = f"_{self.args.client_num_in_total}|{self.args.client_num_per_round}_{self.args.model}_{self.args.dataset}"
+        pool_name = f"ABNS{self.args.ABNS}_SFt{self.args.SFt}_D{self.args.density}" + pool_name
+        pool_path = os.path.join(path, pool_name)
+        if not os.path.exists(pool_path):
+            os.mkdir(pool_path)
+        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.aggregator.trainer.model.parameters()), lr=self.args.lr),
+        mask = Masking(
+            optimizer,
+            CosineDecay(prune_rate=0.1),
+            density=self.args.density,
+            dense_gradients=False,
+            sparse_init=self.args.init_sparse,
+            prune_mode="magnitude",
+            growth_mode="absolute-gradient",
+            redistribution_mode="none"
+        )
+
+        for idx in range(self.args.num_candidates):
+            # pooling.
+            logging.info(f"generate candidate {idx} ")
+            mask_dict = mask.generate_mask_only(self.aggregator.trainer.model)
+
+            # to test whether the model was change
+            # for value in self.aggregator.get_global_model_params().values():
+            #     logging.info(value)
+            #     break
+            # for m in mask_dict.values():
+            #     logging.info(m)
+            #     break
+            lottery_name = f"{idx}_{self.args.init_sparse}_D{mask.act_density:.4f}_FLOP{mask.inference_FLOPs/mask.dense_FLOPs:.4f}.pth"
+            lottery_path = os.path.join(pool_path, lottery_name)
+            torch.save(mask.state_dict(), lottery_path)
+            self.candidate_paths.append(lottery_path)
+        if self.args.ABNS:
+            self.mode = 2
+        else:
+            self.mode = 1
     # def send_init_model(self):
     #     client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
     #                                                      self.args.client_num_in_total)

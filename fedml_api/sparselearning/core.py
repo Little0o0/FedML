@@ -182,6 +182,7 @@ class Masking(object):
         self._dense_FLOPs = None
         self._inference_FLOPs_collector = AverageValue()
 
+        self.act_density = self.density
         # Assertions
         assert (
             self.sparse_init in init_registry
@@ -196,6 +197,62 @@ class Masking(object):
         assert (
             self.redistribution_mode in redistribute_registry.keys()
         ), f"Available redistribute modes: {','.join(redistribute_registry.keys())}"
+
+
+    def generate_mask_only(self, module, lottery_mask_path: "Path" = None):
+        self.module = module
+        for name, weight in self.module.named_parameters():
+            self.mask_dict[name] = torch.zeros_like(
+                weight, dtype=torch.float32, requires_grad=False
+            )
+        # Remove bias, batchnorms
+        logging.info("Removing biases...")
+        self.remove_weight_partial_name("bias")
+        logging.info("Removing 2D batch norms...")
+        self.remove_type(nn.BatchNorm2d)
+        logging.info("Removing 1D batch norms...")
+        self.remove_type(nn.BatchNorm1d)
+
+        self.init_mask_only(lottery_mask_path)
+        logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
+        return self.mask_dict
+
+    @torch.no_grad()
+    def init_mask_only(self, lottery_mask_path: "Path"):
+        """
+        Sparsity initialization
+
+        :param lottery_mask_path: Mask path,
+            if using Lottery Ticket Hypothesis
+            (Frankle & Carbin 2018).
+        :type lottery_mask_path: Path
+        """
+        # Performs weight initialization
+        self.sparsify(lottery_mask_path=lottery_mask_path)
+        self.to_module_device_()
+        self.print_nonzero_counts()
+
+        total_size = 0
+        for name, module in self.module.named_modules():
+            if hasattr(module, "weight"):
+                total_size += module.weight.numel()
+            if getattr(module, "bias", None) is not None:
+                total_size += module.bias.numel()
+        logging.info(f"Total Model parameters: {total_size}.")
+
+        total_size = 0
+        for name, weight in self.mask_dict.items():
+            total_size += weight.numel()
+
+        self.stats.total_nonzero = self.baseline_nonzero
+        self.stats.total_zero = self.total_params - self.baseline_nonzero
+        logging.info(f"Total parameters after removed layers: {total_size}.")
+        logging.info(
+            f"Total parameters under sparsity level of {self.density}: {self.baseline_nonzero}"
+        )
+        logging.info(
+            f"Achieved sparsity at init (w/o BN, bias): {self.baseline_nonzero / self.total_params:.4f}"
+        )
 
     """
     Code flow:

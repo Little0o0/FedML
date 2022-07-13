@@ -125,7 +125,10 @@ def init_server(
     server_manager.pre_train(epochs=args.pre_train_epochs)
     if args.prune and args.baseline in ["SNIP", "GraSP", "SynFlow", "Mag", "Random"]:
         server_manager.init_prune_model(args.init_prune_epochs)
-
+    if args.prune and args.baseline == "none":
+        # it needs generate candidate pools
+        # the name is related to
+        server_manager.generate_lottery_pool()
     server_manager.send_init_msg()
     server_manager.run()
 

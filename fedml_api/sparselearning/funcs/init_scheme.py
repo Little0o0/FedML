@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from typing import TYPE_CHECKING
-
+import math
 from einops import repeat
 import numpy as np
 import torch
@@ -278,8 +278,112 @@ def struct_random_init(masking: "Masking", **kwargs):
         masking.baseline_nonzero += masking.mask_dict[name].sum().int().item()
         masking.total_params += weight.numel()
 
+def varify_density_rate(weight_num_dict:dict(), density_rate_dict, target_density, total_params):
+    nonzero_num = 0
+    for name, weight_num in weight_num_dict.items():
+        if name not in density_rate_dict:
+            continue
+        left_num = max(math.floor(density_rate_dict[name] * weight_num), 1)
+        nonzero_num += left_num
+
+    global_density_rate = nonzero_num / total_params
+    logging.info(f"density rate for current stratagy is {global_density_rate:.3%}, the target density is {target_density:.3%}")
+    if np.abs(target_density - global_density_rate) / target_density < 0.02 :
+        return True, global_density_rate
+    else:
+        return False, -1
+
+def generate_density_rate_dict(masking: "Masking", strategy, is_noise, is_kernel=False):
+    weight_num_dict = dict()
+    total_params = 0
+    target_density = masking.density
+    for name, weight in masking.module.named_parameters():
+        if name not in masking.mask_dict:
+            continue
+        num_params = weight.numel()
+        weight_num_dict[name] = num_params
+        total_params += num_params
+
+    while True:
+        density_rate_dict = dict()
+        if strategy == "uniform":
+            for name, weight  in masking.module.named_parameters():
+                if name not in masking.mask_dict:
+                    continue
+                density_rate = target_density if not is_noise else target_density + (np.random.rand() - 0.5) * target_density
+                density_rate_dict[name] = density_rate
+        elif strategy == "erdos_renyi":
+            density_rate_dict =  get_erdos_renyi_dist(masking, is_kernel)
+            if is_noise:
+                for name, weight in masking.module.named_parameters():
+                    if name not in masking.mask_dict:
+                        continue
+                    density_rate_dict[name] = density_rate_dict[name] + (np.random.rand() - 0.5) * density_rate_dict[name] * 2
+        flag, act_density = varify_density_rate(weight_num_dict, density_rate_dict, target_density, total_params)
+        if flag:
+            masking.act_density = act_density
+            return  density_rate_dict
+
+def uniform_magnitude(masking: "Masking", is_noise = True, **kwargs):
+    density_rate_dict = generate_density_rate_dict(masking, "uniform", is_noise)
+    density_dict = dict()
+    for e, (name, weight) in enumerate(masking.module.named_parameters()):
+        # In random init, skip first layer
+        if e == 0:
+            masking.remove_weight(name)
+            logging.info(
+                f"Removing (first layer) {name} of size {weight.numel()} parameters."
+            )
+            continue
+
+        # Skip modules we arent masking
+        if name not in masking.mask_dict:
+            continue
+
+        logging.debug(
+            f"Uniform Magnitude {name}: {weight.shape} density {masking.density:.4f}"
+        )
+        density_rate = density_rate_dict[name]
+        density_dict[name] = max(math.floor(density_rate * weight.numel()), 1)
+    masking.density_dict = density_dict
+    magnitude(masking)
+
+
+def erdos_renyi_magnitude(masking: "Masking", is_noise = True, is_kernel = False, **kwargs):
+    density_rate_dict = generate_density_rate_dict(masking, "erdos_renyi", is_noise, is_kernel)
+    density_dict = dict()
+    for name, weight in masking.module.named_parameters():
+        if name not in masking.mask_dict:
+            continue
+        density_rate = density_rate_dict[name]
+        density_dict[name] = max(math.floor(density_rate * weight.numel()), 1)
+    masking.density_dict = density_dict
+    magnitude(masking)
+
+def magnitude(masking: "Masking"):
+    density_dict = masking.density_dict
+    assert density_dict is not None
+    for name, weight  in masking.module.named_parameters():
+        # In random init, skip first layer
+        if name not in masking.mask_dict:
+            continue
+
+        num_params = weight.numel()
+        num_remove = num_params - density_dict[name]
+        density_rate = density_dict[name] / num_params
+        logging.debug(f"Magnitude {name}: {weight.shape} density{density_rate:.4f}")
+        x, idx = torch.sort(torch.abs(weight.data.view(-1)))
+        masking.mask_dict[name].data.view(-1)[idx[num_remove:]] = 1.0
+        masking.baseline_nonzero += (masking.mask_dict[name] != 0).sum().int().item()
+        masking.total_params += weight.numel()
 
 registry = {
+    "noise-erdos-renyi-magnitude": partial(erdos_renyi_magnitude, is_noise=True, is_kernel=False),
+    "magnitude": magnitude,
+    "noise-uniform-magnitude":partial(uniform_magnitude, is_noise=True),
+    "uniform-magnitude":partial(uniform_magnitude, is_noise=False),
+    "erdos-renyi-magnitude": partial(erdos_renyi_magnitude, is_noise=False, is_kernel=False),
+
     "erdos-renyi": partial(erdos_renyi_init, is_kernel=False),
     "erdos-renyi-kernel": partial(erdos_renyi_init, is_kernel=True),
     "lottery-ticket": lottery_ticket_init,
