@@ -180,6 +180,7 @@ def lottery_ticket_init(
         masking.baseline_nonzero += masking.mask_dict[name].sum().int().item()
         masking.total_params += weight.numel()
 
+    masking.act_density =  masking.baseline_nonzero/masking.total_params
     logging.info(
         f"Loaded mask from {lottery_mask_path} with density: {masking.baseline_nonzero/masking.total_params}"
     )

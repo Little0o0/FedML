@@ -199,6 +199,35 @@ class Masking(object):
         ), f"Available redistribute modes: {','.join(redistribute_registry.keys())}"
 
 
+    def attach_model_with_mask_dict(self, module, mask_dict):
+        self.module = module
+        self.mask_dict = mask_dict
+        self.to_module_device_()
+        for name, weight in self.module.named_parameters():
+            if name not in self.mask_dict:
+                continue
+            self.baseline_nonzero += (self.mask_dict[name] != 0).sum().int().item()
+            self.total_params += weight.numel()
+
+        self.apply_mask()
+        self.print_nonzero_counts()
+
+        total_size = 0
+        for name, module in self.module.named_modules():
+            if hasattr(module, "weight"):
+                total_size += module.weight.numel()
+            if getattr(module, "bias", None) is not None:
+                total_size += module.bias.numel()
+
+        total_size = 0
+        for name, weight in self.mask_dict.items():
+            total_size += weight.numel()
+
+        self.stats.total_nonzero = self.baseline_nonzero
+        self.stats.total_zero = self.total_params - self.baseline_nonzero
+
+
+
     def generate_mask_only(self, module, lottery_mask_path: "Path" = None):
         self.module = module
         for name, weight in self.module.named_parameters():
@@ -326,7 +355,7 @@ class Masking(object):
                     )
 
     @torch.no_grad()
-    def apply_mask(self):
+    def apply_mask(self) -> object:
         """
         Applies boolean mask to modules
         """

@@ -33,27 +33,17 @@ class FedAVGAggregator(object):
         self.device = device
         self.model_dict = dict()
         self.sample_num_dict = dict()
+        self.test_num_dict = dict()
+        self.metrics_dict = dict()
+        self.BN_dict = dict()
         self.flag_client_model_uploaded_dict = dict()
+        self.model_candidate_dict = dict()
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
 
     def train(self, epochs):
-        self.trainer.train(self.train_global, self.device, self.args, epochs)
+        self.trainer.train(self.train_global, self.device, self.args, epochs=epochs)
 
-
-    # def generate_val_data_local_dict(self, dataloader_dict, ratio):
-    #     val_data_local_dict = {}
-    #     val_data_local_num_dict = {}
-    #     for key, dataloader in dataloader_dict.items():
-    #         train_data_num = len(dataloader.dataset)
-    #         sample_indices = random.sample(range(train_data_num), int(ratio * train_data_num))
-    #         subset = torch.utils.data.Subset(dataloader.dataset, sample_indices)
-    #         sample_testset = torch.utils.data.DataLoader(subset, batch_size=self.args.batch_size)
-    #         val_data_local_dict[key] = sample_testset
-    #         val_data_local_num_dict[key] = len(sample_indices)
-    #
-    #     logging.info(f"val data local num dict is : {val_data_local_num_dict}")
-    #     return val_data_local_dict, val_data_local_num_dict
 
     def set_baseline_init_prune_model(self, epochs):
         self.trainer.init_prune_loop(self.train_global, self.device, self.args, epochs=epochs)
@@ -64,10 +54,18 @@ class FedAVGAggregator(object):
     def set_global_model_params(self, model_parameters):
         self.trainer.set_model_params(model_parameters)
 
-    def add_local_trained_result(self, index, model_params, sample_num):
+    def add_local_trained_result(self, index, model_params, sample_num, candidate_set):
         logging.info("add_model. index = %d" % index)
         self.model_dict[index] = model_params
         self.sample_num_dict[index] = sample_num
+        self.model_candidate_dict[index] = candidate_set
+        self.flag_client_model_uploaded_dict[index] = True
+
+    def add_local_init_message_result(self, index, metrics, BNs, test_num):
+        logging.info("get evaluation result from index  %d" % index)
+        self.test_num_dict[index] = test_num
+        self.metrics_dict[index] = metrics
+        self.BN_dict[index] = BNs
         self.flag_client_model_uploaded_dict[index] = True
 
     def check_whether_all_receive(self):
@@ -79,10 +77,39 @@ class FedAVGAggregator(object):
             self.flag_client_model_uploaded_dict[idx] = False
         return True
 
-    def aggregate(self):
+    def aggregate_evaluation(self):
+        test_num = 0
+        average_losses= {}
+        average_accuracy = {}
+
+        for idx in range(self.worker_num):
+            test_num += self.test_num_dict[idx]
+            for key in self.metrics_dict[idx]:
+                if key in average_losses:
+                    average_losses[key] += self.metrics_dict[idx][key]["test_loss"]
+                    average_accuracy[key] += self.metrics_dict[idx][key]["test_correct"]
+                else:
+                    average_losses[key] = self.metrics_dict[idx][key]["test_loss"]
+                    average_accuracy[key] = self.metrics_dict[idx][key]["test_correct"]
+
+        for key in average_losses:
+            average_losses[key] /= test_num
+            average_accuracy[key] /= test_num
+
+        logging.info(average_losses)
+        logging.info(average_accuracy)
+
+        best_idx, best_loss = sorted(average_losses.items(), key=lambda x: x[1])[0]
+        best_acc = average_accuracy[best_idx]
+        return best_idx, best_acc
+
+    def aggregate(self, round_id, mode):
         start_time = time.time()
         model_list = []
         training_num = 0
+        if mode == 3:
+            pass
+
 
         for idx in range(self.worker_num):
             if self.args.is_mobile == 1:
@@ -107,6 +134,9 @@ class FedAVGAggregator(object):
 
         # update the global model which is cached at the server side
         self.set_global_model_params(averaged_params)
+
+        if mode == 3:
+            pass
 
         end_time = time.time()
         logging.info("aggregate time cost: %d" % (end_time - start_time))
@@ -192,7 +222,7 @@ class FedAVGAggregator(object):
             #     metrics = self.trainer.test(self.test_global,s self.device, self.args)
             # else:
             #     metrics = self.trainer.test(self.val_global, self.device, self.args)
-                
+
             test_tot_correct, test_num_sample, test_loss = metrics['test_correct'], metrics['test_total'], metrics[
                 'test_loss']
             test_tot_corrects.append(copy.deepcopy(test_tot_correct))

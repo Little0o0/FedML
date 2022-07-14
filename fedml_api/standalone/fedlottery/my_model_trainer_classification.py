@@ -14,6 +14,27 @@ except ImportError:
 
 
 class MyModelTrainer(ModelTrainer):
+    def __init__(self, model, args=None):
+        super().__init__(model=model, args=args)
+        self.mask = None
+        self.mask_dict = None
+        self.candidate_set = dict()
+        self.num_growth = dict()
+
+
+
+    def set_model_mask(self, mask):
+        self.mask = mask
+        self.mask_dict = self.mask.mask_dict
+        self.mask.attach_model_with_mask_dict(self.model,  self.mask_dict)
+
+    def set_model_mask_dict(self, mask_dict):
+        self.mask.mask_dict = mask_dict
+        self.mask_dict = self.mask.mask_dict
+
+    def get_model_candidate_set(self):
+        return self.candidate_set
+
     def get_model_params(self, noMask=False):
         if noMask:
             params =  self.model.cpu().state_dict()
@@ -47,9 +68,11 @@ class MyModelTrainer(ModelTrainer):
                    schedule, scope, epochs, reinitialize, train_mode, shuffle, invert)
 
 
-    def train(self, train_data, device, args, epochs=None):
+    def train(self, train_data, device, args, mode=0, epochs=None):
         if epochs is None:
             epochs = args.epochs
+
+        assert mode in [0, 1, 3]
 
         model = self.model
         model.to(device)
@@ -63,6 +86,14 @@ class MyModelTrainer(ModelTrainer):
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
 
+        if mode in [1, 3]:
+            # following need to revise
+            self.mask.optimizer = optimizer
+            self.mask.to_module_device_()
+            self.mask.apply_mask()
+            masking_print_FLOPs = True
+            masking_apply_when = "step_end"
+
         epoch_loss = []
 
         for epoch in range(epochs):
@@ -74,17 +105,45 @@ class MyModelTrainer(ModelTrainer):
                 loss = criterion(log_probs, labels)
                 loss.backward()
 
+                # if (mode == 3
+                #     and masking_apply_when == "step_end"
+                #     and (epoch + 1) == args.epochs
+                #     and (batch_idx + 1) == len(train_data)
+                #     ):
+                #     # self.update_connections()
+                #
+                #     for name, weight in self.model.named_parameters():
+                #         if name not in self.mask_dict:
+                #             continue
+                #
+                #         num_remove = self.num_growth[name]
+                #         new_mask = self.mask_dict[name].data.bool().cpu()
+                #
+                #         grad = weight.grad.cpu()
+                #         if grad.dtype == torch.float16:
+                #             grad = grad * (new_mask == 0).half()
+                #         else:
+                #             grad = grad * (new_mask == 0).float()
+                #
+                #         _, idx = torch.sort(torch.abs(grad).flatten(), descending=True)
+                #         idx = idx[:num_remove]
+                #         idx = [x.item() for x in idx]
+                #         grad = grad.flatten()[idx]
+                #
+                #         self.candidate_set[name] = dict(zip(idx, grad))
+
                 # Uncommet this following line to avoid nan loss
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
-                optimizer.step()
+                if mode in [1, 3]:
+                    self.mask.step()
+                else:
+                    optimizer.step()
                 # logging.info('Update Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 #     epoch, (batch_idx + 1) * args.batch_size, len(train_data) * args.batch_size,
                 #            100. * (batch_idx + 1) / len(train_data), loss.item()))
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
-            logging.info('Client Index = {}\tEpoch: {}\tLoss: {:.6f}'.format(
-                self.id, epoch, sum(epoch_loss) / len(epoch_loss)))
 
     def test(self, test_data, device, args):
         model = self.model
