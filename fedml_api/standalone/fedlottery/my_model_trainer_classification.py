@@ -3,6 +3,7 @@ import logging
 import torch
 from torch import nn
 import numpy as np
+import math
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
@@ -32,6 +33,15 @@ class MyModelTrainer(ModelTrainer):
         self.mask.mask_dict = mask_dict
         self.mask_dict = self.mask.mask_dict
 
+    def get_model_mask_dict(self):
+        return self.mask_dict
+
+    def get_num_growth(self):
+        return self.num_growth
+
+    def set_num_growth(self, num_growth):
+        self.num_growth = num_growth
+
     def get_model_candidate_set(self):
         return self.candidate_set
 
@@ -45,6 +55,18 @@ class MyModelTrainer(ModelTrainer):
     def set_model_params(self, model_parameters):
         self.model.load_state_dict(model_parameters, strict=False)
 
+    def update_num_growth(self):
+        self.mask.gather_statistics()
+        self.mask.adjust_prune_rate()
+
+        for name, weight in self.mask.module.named_parameters():
+            if name not in self.mask_dict:
+                continue
+            else:
+                num_remove = math.ceil(
+                    self.mask.name2prune_rate[name] * self.mask.stats.nonzeros_dict[name]
+                )
+                self.num_growth[name] = num_remove
 
     def init_prune_loop(self, prune_data, device, args, epochs, schedule = "exponential", scope="local",
                         reinitialize=False, train_mode=False, shuffle=False, invert=False):
@@ -72,7 +94,7 @@ class MyModelTrainer(ModelTrainer):
         if epochs is None:
             epochs = args.epochs
 
-        assert mode in [0, 1, 3]
+        assert mode in [0, 3, 5, 6]
 
         model = self.model
         model.to(device)
@@ -86,13 +108,12 @@ class MyModelTrainer(ModelTrainer):
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
 
-        if mode in [1, 3]:
+        if mode in [3, 5, 6]:
             # following need to revise
             self.mask.optimizer = optimizer
             self.mask.to_module_device_()
             self.mask.apply_mask()
             masking_print_FLOPs = True
-            masking_apply_when = "step_end"
 
         epoch_loss = []
 
@@ -105,37 +126,39 @@ class MyModelTrainer(ModelTrainer):
                 loss = criterion(log_probs, labels)
                 loss.backward()
 
-                # if (mode == 3
-                #     and masking_apply_when == "step_end"
-                #     and (epoch + 1) == args.epochs
-                #     and (batch_idx + 1) == len(train_data)
-                #     ):
-                #     # self.update_connections()
-                #
-                #     for name, weight in self.model.named_parameters():
-                #         if name not in self.mask_dict:
-                #             continue
-                #
-                #         num_remove = self.num_growth[name]
-                #         new_mask = self.mask_dict[name].data.bool().cpu()
-                #
-                #         grad = weight.grad.cpu()
-                #         if grad.dtype == torch.float16:
-                #             grad = grad * (new_mask == 0).half()
-                #         else:
-                #             grad = grad * (new_mask == 0).float()
-                #
-                #         _, idx = torch.sort(torch.abs(grad).flatten(), descending=True)
-                #         idx = idx[:num_remove]
-                #         idx = [x.item() for x in idx]
-                #         grad = grad.flatten()[idx]
-                #
-                #         self.candidate_set[name] = dict(zip(idx, grad))
+                if (mode == 3
+                    and (epoch + 1) == args.epochs
+                    and (batch_idx + 1) == len(train_data)
+                    ):
+                    # self.update_connections()
+
+                    for name, weight in self.model.named_parameters():
+                        if name not in self.mask_dict:
+                            continue
+
+                        num_remove = self.num_growth[name]
+                        new_mask = self.mask_dict[name].data.bool().cpu()
+
+                        grad = weight.grad.cpu()
+                        if grad.dtype == torch.float16:
+                            grad = grad * (new_mask == 0).half()
+                        else:
+                            grad = grad * (new_mask == 0).float()
+
+                        _, idx = torch.sort(torch.abs(grad).flatten(), descending=True)
+
+                        # logging.info(f"layer {name} num of remove {num_remove} and num of total {len(idx)}")
+                        idx = idx[:num_remove]
+                        idx = [x.item() for x in idx]
+                        grad = grad.flatten()[idx]
+
+                        # self.candidate_set[name] = zip(idx, grad)
+                        self.candidate_set[name] = dict(zip(idx, grad))
 
                 # Uncommet this following line to avoid nan loss
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
-                if mode in [1, 3]:
+                if mode in [3, 5, 6]:
                     self.mask.step()
                 else:
                     optimizer.step()
@@ -144,6 +167,24 @@ class MyModelTrainer(ModelTrainer):
                 #            100. * (batch_idx + 1) / len(train_data), loss.item()))
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
+
+    def update_BN_with_local_data(self, train_data, device, args, num_epoch = 5):
+        model = self.model
+        model.train()
+        model.to(device)
+        criterion = nn.CrossEntropyLoss().to(device)
+        for param in model.parameters():
+            param.requires_grad = False
+
+        for _ in range(num_epoch):
+            for batch_idx, (x, labels) in enumerate(train_data):
+                x, labels = x.to(device), labels.to(device)
+                log_probs = model(x)
+
+        model.zero_grad()
+        for param in model.parameters():
+            param.requires_grad = True
+        return
 
     def test(self, test_data, device, args):
         model = self.model

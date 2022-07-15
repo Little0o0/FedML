@@ -44,6 +44,8 @@ class FedAVGAggregator(object):
     def train(self, epochs):
         self.trainer.train(self.train_global, self.device, self.args, epochs=epochs)
 
+    def apply_mask(self):
+        self.trainer.mask.apply_mask()
 
     def set_baseline_init_prune_model(self, epochs):
         self.trainer.init_prune_loop(self.train_global, self.device, self.args, epochs=epochs)
@@ -77,6 +79,26 @@ class FedAVGAggregator(object):
             self.flag_client_model_uploaded_dict[idx] = False
         return True
 
+    def aggregate_BN(self):
+        aggregate_BN = {}
+        test_num = 0
+        for idx in range(self.worker_num):
+            test_num += self.test_num_dict[idx]
+            for index in self.BN_dict[idx]:
+                aggregate_BN[index] = {}
+                for key, value in self.BN_dict[idx][index].items():
+                    if key not in aggregate_BN[index]:
+                        aggregate_BN[index][key] = value * self.test_num_dict[idx]
+                    else:
+                        aggregate_BN[index][key] += value * self.test_num_dict[idx]
+
+        for index in aggregate_BN:
+            for key in aggregate_BN[index]:
+                aggregate_BN[index][key] /= test_num
+
+        return aggregate_BN
+
+
     def aggregate_evaluation(self):
         test_num = 0
         average_losses= {}
@@ -103,12 +125,70 @@ class FedAVGAggregator(object):
         best_acc = average_accuracy[best_idx]
         return best_idx, best_acc
 
-    def aggregate(self, round_id, mode):
+    def get_mask(self):
+        return self.trainer.mask
+
+    def update_num_growth(self):
+        self.trainer.update_num_growth()
+
+    def aggregate(self, round, mode):
         start_time = time.time()
         model_list = []
         training_num = 0
         if mode == 3:
-            pass
+            # for idx in self.model_candidate_dict:
+            #     for name in self.model_candidate_dict[idx]:
+            #         self.model_candidate_dict[idx][name] = dict(self.model_candidate_dict[idx][name])
+            self.get_mask().to_module_device_()
+            self.get_mask().step(self.args.epochs)
+            candidate_set = dict()
+            layer_names = list(self.model_candidate_dict[0].keys())
+            if self.args.grand == "layer":
+                # window_size = 3
+                if self.args.reverse:
+                    idx = len(layer_names) - (round % len(layer_names))
+                else:
+                    idx = round % len(layer_names)
+                # select one layer for one round
+                candidate_layer_names = [layer_names[idx]]
+            elif self.args.grand == "block":
+                if self.args.model == "resnet50":
+                    if self.args.reverse:
+                        idx = -(round % 4) + 5
+                    else:
+                        idx = (round % 4) + 2
+                    candidate_layer_names = list(filter(lambda x : f"conv{idx}_x" in x, layer_names))
+                    if idx == 5:
+                        candidate_layer_names.append('fc.weight')
+                else:
+                    raise Exception("TODO yet")
+
+            elif self.args.grand == "entire":
+                candidate_layer_names = layer_names
+
+            else:
+                raise Exception("TODO yet")
+
+            logging.info("update layer list : " + str(candidate_layer_names))
+            for name in candidate_layer_names:
+                candidate_set[name] = dict()
+
+            for idx in range(self.worker_num):
+                for name in candidate_set:
+                    for index, grad in self.model_candidate_dict[idx][name].items():
+                        if index in candidate_set[name]:
+                            candidate_set[name][index].append(grad)
+                        else:
+                            candidate_set[name][index] = [grad]
+
+            # These for average
+            # for name in candidate_set:
+            #     for index in candidate_set[name]:
+            #         candidate_set[name][index] =  torch.mean(torch.stack(candidate_set[name][index]), dim=0)
+
+            for name in candidate_set:
+                for index in candidate_set[name]:
+                    candidate_set[name][index] = torch.sum(torch.stack(candidate_set[name][index]), dim=0)/self.worker_num
 
 
         for idx in range(self.worker_num):
@@ -122,8 +202,6 @@ class FedAVGAggregator(object):
         # logging.info("################aggregate: %d" % len(model_list))
         (num0, averaged_params) = model_list[0]
         for k in averaged_params.keys():
-            if "mask" in k:
-                logging.info(k)
             for i in range(0, len(model_list)):
                 local_sample_number, local_model_params = model_list[i]
                 w = local_sample_number / training_num
@@ -135,12 +213,108 @@ class FedAVGAggregator(object):
         # update the global model which is cached at the server side
         self.set_global_model_params(averaged_params)
 
+        # if mode in [3, 5, 6]:
+        #     self.trainer.model.to(self.device)
+        #     self.apply_mask()
+
+
         if mode == 3:
-            pass
+            model_mask = self.get_mask()
+            model_mask_dict = self.trainer.get_model_mask_dict()
+            model_mask.gather_statistics()
+            model_mask.adjust_prune_rate()
+
+            num_growth = self.trainer.get_num_growth()
+            # logging.info(num_growth)
+            total_nonzero_new = 0
+            for name, weight in model_mask.module.named_parameters():
+                if name not in model_mask_dict or name not in candidate_set:
+                    continue
+                mask = model_mask_dict[name]
+
+                # prune
+                new_mask = model_mask.prune_func(model_mask, mask, weight, name)
+                removed = num_growth[name]
+                model_mask.stats.total_removed += removed
+                model_mask.stats.removed_dict[name] = removed
+
+                # # growth from candidate
+                # if self.args.SFt and self.args.ABNS:
+                #     removed = int(1.2 * removed)
+
+                regrowth = sorted(candidate_set[name].items(), key=lambda x:torch.abs(x[1]), reverse=True)[:removed]
+                regrowth_index = [x[0] for x in regrowth]
+
+                new_mask.data.view(-1)[regrowth_index] = 1.0
+                weight.data.view(-1)[regrowth_index] = 0.0
+                new_nonzero = new_mask.sum().item()
+                model_mask_dict.pop(name)
+                model_mask_dict[name] = new_mask.float()
+                total_nonzero_new += new_nonzero
+
+            self.trainer.set_model_mask_dict(model_mask_dict)
+            self.apply_mask()
+
+            # model_mask.reset_momentum()
+            # model_mask.apply_mask_gradients()
+
+            model_mask.adjustments.append(
+                model_mask.baseline_nonzero - total_nonzero_new
+            )  # will be zero if deterministic
+            model_mask.adjusted_growth = (
+                    0.25 * model_mask.adjusted_growth
+                    + (0.75 * model_mask.adjustments[-1])
+                    + np.mean(model_mask.adjustments)
+            )
+            if model_mask.stats.total_nonzero > 0:
+                logging.debug(
+                    f"Nonzero before/after: {model_mask.stats.total_nonzero}/{total_nonzero_new}. "
+                    f"Growth adjustment: {model_mask.adjusted_growth:.2f}."
+                )
+
+            model_mask.gather_statistics()
+
 
         end_time = time.time()
         logging.info("aggregate time cost: %d" % (end_time - start_time))
         return averaged_params
+    # def aggregate(self, round_id, mode):
+    #     start_time = time.time()
+    #     model_list = []
+    #     training_num = 0
+    #     if mode == 3:
+    #         pass
+    #
+    #     for idx in range(self.worker_num):
+    #         if self.args.is_mobile == 1:
+    #             self.model_dict[idx] = transform_list_to_tensor(self.model_dict[idx])
+    #         model_list.append((self.sample_num_dict[idx], self.model_dict[idx]))
+    #         training_num += self.sample_num_dict[idx]
+    #
+    #     logging.info("len of self.model_dict[idx] = " + str(len(self.model_dict)))
+    #
+    #     # logging.info("################aggregate: %d" % len(model_list))
+    #     (num0, averaged_params) = model_list[0]
+    #     for k in averaged_params.keys():
+    #         if "mask" in k:
+    #             logging.info(k)
+    #         for i in range(0, len(model_list)):
+    #             local_sample_number, local_model_params = model_list[i]
+    #             w = local_sample_number / training_num
+    #             if i == 0:
+    #                 averaged_params[k] = local_model_params[k] * w
+    #             else:
+    #                 averaged_params[k] += local_model_params[k] * w
+    #
+    #     # update the global model which is cached at the server side
+    #     self.set_global_model_params(averaged_params)
+    #
+    #     if mode == 3:
+    #         pass
+    #
+    #     end_time = time.time()
+    #     logging.info("aggregate time cost: %d" % (end_time - start_time))
+    #     return averaged_params
 
     def client_sampling(self, round_idx, client_num_in_total, client_num_per_round):
         if client_num_in_total == client_num_per_round:

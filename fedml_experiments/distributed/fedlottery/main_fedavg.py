@@ -89,7 +89,7 @@ def add_args(parser):
     parser.add_argument("--comm_round", type=int, default=10, help="how many round of communications we shoud use")
 
     parser.add_argument(
-        "--is_mobile", type=int, default=1, help="whether the program is running on the FedML-Mobile server side"
+        "--is_mobile", type=int, default=0, help="whether the program is running on the FedML-Mobile server side"
     )
 
     parser.add_argument("--frequency_of_the_test", type=int, default=1, help="the frequency of the algorithms")
@@ -148,6 +148,10 @@ def add_args(parser):
     parser.add_argument("--pre_train_epochs", type=int, default=3, help="the number of epochs for pre training")
 
     parser.add_argument("--init_prune_epochs", type=int, default=5, help="the number of epochs for init pruning methods: [SNIP|GraSP|SynFlow|Mag|Random]")
+
+    parser.add_argument("--grand", type=str, default="entire", help="[entire|block|layer]")
+
+    parser.add_argument("--reverse", type=int, default=1)
 
     args = parser.parse_args()
     return args

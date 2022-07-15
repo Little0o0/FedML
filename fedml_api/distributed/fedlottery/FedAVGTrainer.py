@@ -1,3 +1,5 @@
+import logging
+
 from .utils import transform_tensor_to_list
 
 
@@ -45,6 +47,9 @@ class FedAVGTrainer(object):
     def update_model(self, weights):
         self.trainer.set_model_params(weights)
 
+    def apply_mask(self):
+        self.trainer.mask.apply_mask()
+
     def update_dataset(self, client_index):
         self.client_index = client_index
         self.train_local = self.train_data_local_dict[client_index]
@@ -58,7 +63,7 @@ class FedAVGTrainer(object):
         self.trainer.train(self.train_local, self.device, self.args, mode=mode)
         weights = self.trainer.get_model_params(noMask=True)
 
-        candidate_set = None if mode != 3 else self.trainer.get_model_candidate_set()
+        candidate_set = dict() if mode != 3 else self.trainer.get_model_candidate_set()
         # transform Tensor to list
         if self.args.is_mobile == 1:
             weights = transform_tensor_to_list(weights)
@@ -69,6 +74,17 @@ class FedAVGTrainer(object):
         # acc = test_metrics['test_correct'] / test_metrics['test_total']
         return test_metrics # key: ['test_correct', 'test_total', 'test_loss']
 
+    def update_BN(self, epochs=10):
+        self.trainer.update_BN_with_local_data(self.test_local, self.device, self.args, epochs)
+        weights = self.trainer.get_model_params()
+        if self.args.is_mobile == 1:
+            weights = transform_tensor_to_list(weights)
+        BN = {}
+        for k in weights.keys():
+            if  "running_mean" in k or "running_var" in k:
+                BN[k] = weights[k]
+
+        return BN
     # def test(self):
     #     # train data
     #     train_metrics = self.trainer.test(self.train_local, self.device, self.args)

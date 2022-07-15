@@ -203,6 +203,8 @@ class Masking(object):
         self.module = module
         self.mask_dict = mask_dict
         self.to_module_device_()
+        self.baseline_nonzero = 0
+        self.total_params = 0
         for name, weight in self.module.named_parameters():
             if name not in self.mask_dict:
                 continue
@@ -755,7 +757,7 @@ class Masking(object):
         }
         return _state_dict
 
-    def step(self):
+    def step(self, epochs = 1):
         """
         Performs an optimizer step
         (i.e, no update to mask topology).
@@ -775,7 +777,7 @@ class Masking(object):
         else:
             self.prune_rate_decay.step(self.mask_step)
 
-        self.mask_step += 1
+        self.mask_step += epochs
 
     def to_module_device_(self):
         """

@@ -30,6 +30,7 @@ class FedAVGServerManager(ServerManager):
         self.mode = 0 # mode 0 regular fedavg, mode 1 for candidate pools, mode 2 for ABNS, mode 3 for SFt
         self.lottery_paths = {}
         self.mask = None
+        self.agg_BNs = dict()
 
 
     def run(self):
@@ -50,10 +51,10 @@ class FedAVGServerManager(ServerManager):
         pool_path = os.path.join(path, pool_name)
         if not os.path.exists(pool_path):
             os.mkdir(pool_path)
-        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.aggregator.trainer.model.parameters()), lr=self.args.lr),
+        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.aggregator.trainer.model.parameters()), lr=self.args.lr)
         self.mask = Masking(
             optimizer,
-            CosineDecay(prune_rate=0.1),
+            CosineDecay(prune_rate=0.5, T_max=500),
             density=self.args.density,
             dense_gradients=False,
             sparse_init=self.args.init_sparse,
@@ -64,6 +65,7 @@ class FedAVGServerManager(ServerManager):
 
         for idx in range(self.args.num_candidates):
             # pooling.
+            self.mask.__post_init__()
             logging.info(f"generate candidate {idx} ")
             mask_dict = self.mask.generate_mask_only(self.aggregator.trainer.model)
             lottery_name = f"{idx}_{self.args.init_sparse}_D{self.mask.act_density:.4f}.pth"
@@ -72,7 +74,7 @@ class FedAVGServerManager(ServerManager):
                 mask_dict[name] = mask_dict[name].cpu()
 
             torch.save(mask_dict, lottery_path)
-            self.lottery_paths[str(idx)] = lottery_path
+            self.lottery_paths[idx] = lottery_path
         if self.args.ABNS:
             self.mode = 2
         else:
@@ -80,6 +82,7 @@ class FedAVGServerManager(ServerManager):
 
     def send_init_msg(self):
         # sampling clients
+        logging.info(f"current mode is {self.mode}")
         client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
                                                          self.args.client_num_per_round)
 
@@ -88,7 +91,8 @@ class FedAVGServerManager(ServerManager):
             global_model_params = transform_tensor_to_list(global_model_params)
 
         for process_id in range(1, self.size):
-            self.send_message_init_config(process_id, global_model_params, client_indexes[process_id - 1], self.mode, self.lottery_paths)
+            self.send_message_init_config(process_id, global_model_params,
+                                          client_indexes[process_id - 1], self.mode, self.lottery_paths)
 
     def register_message_receive_handlers(self):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER,
@@ -104,38 +108,87 @@ class FedAVGServerManager(ServerManager):
         metrics = msg_params.get(MyMessage.MSG_ARG_KEY_METRICS)
         self.aggregator.add_local_init_message_result(sender_id - 1, metrics=metrics, BNs=BNs, test_num=local_test_number)
         b_all_received = self.aggregator.check_whether_all_receive()
+        assert self.mode in [1, 2, 4]
         if b_all_received:
-            if self.mode == 1:
+            if self.mode in [1, 4]:
                 best_idx, best_accuracy = self.aggregator.aggregate_evaluation()
                 logging.info(f"The best model is idx {best_idx}, whose accuracy is {best_accuracy:.4f}")
-                mask_dict = torch.load(self.lottery_paths[best_idx])
-                self.mask.mask_dict = mask_dict
+                best_mask_dict = torch.load(self.lottery_paths[best_idx])
+                self.mask.mask_dict = best_mask_dict
                 self.aggregator.trainer.set_model_mask(self.mask)
                 global_model_params = self.aggregator.get_global_model_params()
+
+                # update BN
+                if self.mode == 4:
+                    best_BN = self.agg_BNs[best_idx]
+                    for name in best_BN:
+                        global_model_params[name] =  best_BN[name]
+
                 client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
                                                                  self.args.client_num_per_round)
+                # change to mode 5
+                self.mode = 5
                 if self.args.is_mobile == 1:
                     global_model_params = transform_tensor_to_list(global_model_params)
 
+                logging.info(f"current mode is {self.mode}")
                 for receiver_id in range(1, self.size):
                     self.send_message_sync_model_to_client(receiver_id, global_model_params,
-                                                           client_indexes[receiver_id - 1], self.mode, mask_dict)
-            else:
-                pass
+                                                           client_indexes[receiver_id - 1], self.mode, best_mask_dict)
+
+            elif self.mode == 2:
+                client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
+                                                                 self.args.client_num_per_round)
+                global_model_params = self.aggregator.get_global_model_params()
+
+                self.agg_BNs = self.aggregator.aggregate_BN()
+
+                # change to mode 4
+                self.mode = 4
+                logging.info(f"current mode is {self.mode}")
+                for receiver_id in range(1, self.size):
+                    self.send_message_init_config(receiver_id, global_model_params, client_indexes[receiver_id - 1],
+                                                  mode=self.mode, lottery_paths=self.lottery_paths,
+                                                  agg_BNs=self.agg_BNs)
+
 
     def handle_message_receive_model_from_client(self, msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         local_sample_number = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_SAMPLES)
         candidate_set = msg_params.get(MyMessage.MSG_ARG_KEY_CANDIDATE_SET)
-
         self.aggregator.add_local_trained_result(sender_id - 1, model_params, local_sample_number, candidate_set)
 
         b_all_received = self.aggregator.check_whether_all_receive()
-        logging.info("b_all_received = " + str(b_all_received))
+        # logging.info("b_all_received = " + str(b_all_received))
         if b_all_received:
             global_model_params = self.aggregator.aggregate(self.round_idx, self.mode)
+            # for name in self.aggregator.trainer.get_model_mask_dict():
+            #     logging.info(global_model_params[name])
+            #     break
             self.aggregator.test_on_server_for_all_clients(self.round_idx)
+            if self.mode == 5:
+                self.mode = 6
+
+            elif self.mode == 3:
+                # generate new mask.
+                self.mode = 5
+
+            elif self.mode == 6 and self.args.SFt :
+                if self.args.grand == "entire" and self.round_idx % 10 == 0 and self.round_idx <= 80:
+                    self.mode = 3
+                    self.aggregator.update_num_growth()
+                elif self.args.grand == "block" and self.round_idx >= 10 and self.round_idx % 10 < 4 and self.round_idx <= 80:
+                    self.mode = 3
+                    self.aggregator.update_num_growth()
+                elif self.args.grand == "layer" and self.round_idx <= 80:
+                    self.mode = 3
+                    self.aggregator.update_num_growth()
+            else:
+                pass
+
+            num_growth = dict() if self.mode != 3 else self.aggregator.trainer.get_num_growth()
+            mask_dict = dict() if self.mode != 5 else self.aggregator.trainer.get_model_mask_dict()
 
             # start the next round
             self.round_idx += 1
@@ -152,28 +205,36 @@ class FedAVGServerManager(ServerManager):
             else:
                 # sampling clients
                 client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
-                                                                 self.args.client_num_per_round)
+                                                                 self.args.client_num_per_round, )
             
-            print('indexes of clients: ' + str(client_indexes))
-            print("size = %d" % self.size)
+            # print('indexes of clients: ' + str(client_indexes))
+            # print("size = %d" % self.size)
             if self.args.is_mobile == 1:
                 global_model_params = transform_tensor_to_list(global_model_params)
 
+            logging.info(f"current mode is {self.mode}")
             for receiver_id in range(1, self.size):
                 self.send_message_sync_model_to_client(receiver_id, global_model_params,
-                                                       client_indexes[receiver_id - 1], self.mode)
+                                                       client_indexes[receiver_id - 1],
+                                                       mode = self.mode,
+                                                       mask_dict=mask_dict,
+                                                       num_growth=num_growth)
 
-    def send_message_init_config(self, receive_id, global_model_params, client_index, mode, lottery_paths={}):
+
+    def send_message_init_config(self, receive_id, global_model_params, client_index, mode, lottery_paths={}, agg_BNs={}):
+        assert mode in [0, 1, 2, 4]
         message = Message(MyMessage.MSG_TYPE_S2C_INIT_CONFIG, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODE, mode)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, global_model_params)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
+        message.add_params(MyMessage.MSG_ARG_KEY_AGG_BNS, agg_BNs)
         message.add_params(MyMessage.MSG_ARG_KEY_LOTTERY_PATH_LIST, lottery_paths)
         self.send_message(message)
 
     def send_message_sync_model_to_client(self, receive_id, global_model_params, client_index, mode,
                                           mask_dict={}, num_growth={}):
-        logging.info("send_message_sync_model_to_client. receive_id = %d" % receive_id)
+        assert mode in [0, 3, 5, 6]
+        # logging.info("send_message_sync_model_to_client. receive_id = %d" % receive_id)
         message = Message(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODE, mode)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, global_model_params)

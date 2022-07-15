@@ -42,14 +42,6 @@ class FedAVGClientManager(ClientManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT,
                                               self.handle_message_receive_model_from_server)
 
-    # def handle_message_init_model(self, msg_params):
-    #     global_model = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL)
-    #     client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
-    #     self.trainer.model = global_model
-    #     self.trainer.update_dataset(int(client_index))
-    #     self.round_idx = 0
-    #     self.__train()
-
     def evaluation(self, lottery_path_dict):
         metrics= {}
         full_model_params = self.trainer.trainer.get_model_params()
@@ -64,22 +56,54 @@ class FedAVGClientManager(ClientManager):
             metrics[idx] = self.trainer.test()
         return metrics
 
+    def ABN_evaluation(self, lottery_path_dict, agg_BNs):
+        metrics= {}
+        # logging.info(f"lottery_path_dict: {lottery_path_dict}")
+        # logging.info(f"agg_BNs: {agg_BNs}")
+        full_model_params = self.trainer.trainer.get_model_params()
+        for idx, lottery_path in lottery_path_dict.items():
+            mask_dict = torch.load(lottery_path)
+            model_params = copy.deepcopy(full_model_params)
+
+            # apply mask
+            for name in model_params:
+                if name in mask_dict:
+                    model_params[name] *= mask_dict[name]
+                if name in agg_BNs[idx]:
+                    model_params[name] = agg_BNs[idx][name]
+            self.trainer.update_model(model_params)
+            metrics[idx] = self.trainer.test()
+        return metrics
+
+
     def get_adaptive_BNs(self, lottery_path_dict):
         BNs = {}
+        full_model_params = self.trainer.trainer.get_model_params()
+        for idx, lottery_path in lottery_path_dict.items():
+            mask_dict = torch.load(lottery_path)
+            model_params = copy.deepcopy(full_model_params)
 
+            # apply mask
+            for name in mask_dict:
+                model_params[name] *= mask_dict[name]
+            self.trainer.update_model(model_params)
+            BNs[idx] = self.trainer.update_BN(epochs = 10)
         return BNs
 
     def handle_message_init(self, msg_params):
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         lottery_path_dict = msg_params.get(MyMessage.MSG_ARG_KEY_LOTTERY_PATH_LIST)
+        agg_BNs = msg_params.get(MyMessage.MSG_ARG_KEY_AGG_BNS)
         self.mode = msg_params.get(MyMessage.MSG_ARG_KEY_MODE)
+
         if self.args.is_mobile == 1:
             global_model_params = transform_list_to_tensor(global_model_params)
 
         self.trainer.update_model(global_model_params)
         self.trainer.update_dataset(int(client_index))
         self.round_idx = 0
+        assert self.mode in [0, 1, 2, 4]
         if self.mode == 0:
             self.__train()
         elif self.mode == 1:
@@ -87,15 +111,10 @@ class FedAVGClientManager(ClientManager):
             self.send_init_message_to_server(0, metrics=metrics, local_test_number=self.trainer.local_test_number)
         elif self.mode == 2:
             BNs = self.get_adaptive_BNs(lottery_path_dict)
-            self.send_init_message_to_server(0, BNs=BNs, local_test_number=self.trainer.local_test_number)
-        else:
-            raise Exception("Mode Error")
-
-
-
-    def start_training(self):
-        self.round_idx = 0
-        self.__train()
+            self.send_init_message_to_server(0, BNs=copy.deepcopy(BNs), local_test_number=self.trainer.local_test_number)
+        elif self.mode == 4:
+            metrics = self.ABN_evaluation(lottery_path_dict, agg_BNs)
+            self.send_init_message_to_server(0, metrics=metrics, local_test_number=self.trainer.local_test_number)
 
     def handle_message_receive_model_from_server(self, msg_params):
         logging.info("handle_message_receive_model_from_server.")
@@ -109,12 +128,15 @@ class FedAVGClientManager(ClientManager):
 
         self.trainer.update_model(model_params)
         self.trainer.update_dataset(int(client_index))
+        assert self.mode in [0, 3, 5, 6]
 
-        if self.mode in [1, 3]:
+        if self.mode in [0, 6]:
+            pass
+        elif self.mode == 5:
             if self.trainer.trainer.mask is None:
                 init_mask = Masking(
                     None,
-                    CosineDecay(prune_rate=0.1),
+                    CosineDecay(prune_rate=0.5),
                     density=self.args.density,
                     prune_mode="magnitude",
                     growth_mode="absolute-gradient",
@@ -124,17 +146,18 @@ class FedAVGClientManager(ClientManager):
                 self.trainer.trainer.set_model_mask(init_mask)
             else:
                 self.trainer.trainer.set_model_mask_dict(mask_dict)
+        elif self.mode == 3:
+            self.trainer.trainer.set_num_growth(num_growth)
 
-        if self.mode == 3:
-            pass
         self.trainer.update_model(model_params)
-        self.round_idx += 1
         self.__train()
+
         # if self.round_idx == self.num_rounds - 1:
         #     # post_complete_message_to_sweep_process(self.args)
         #     self.finish()
 
     def send_init_message_to_server(self, receive_id, metrics={}, BNs={}, local_test_number=0):
+        assert self.mode in [1, 2, 4]
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_INIT_MESSAGE, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_METRICS, metrics)
         message.add_params(MyMessage.MSG_ARG_KEY_BNS, BNs)
@@ -142,13 +165,18 @@ class FedAVGClientManager(ClientManager):
         self.send_message(message)
 
     def send_model_to_server(self, receive_id, weights, local_sample_num, candidate_set):
+        # for mode 0, mode 3, mode 5, mode 6
+        assert self.mode in [0, 3, 5, 6]
+        logging.info(f" round_id = {self.round_idx}, client mode is {self.mode}")
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         message.add_params(MyMessage.MSG_ARG_KEY_CANDIDATE_SET, candidate_set)
+        self.round_idx += 1
         self.send_message(message)
 
     def __train(self):
-        logging.info("#######training########### round_id = %d" % self.round_idx)
-        weights, local_sample_num, candidate_set = self.trainer.train(self.round_idx)
+        # logging.info("#######training########### round_id = %d" % self.round_idx)
+        weights, local_sample_num, candidate_set = self.trainer.train(round_idx = self.round_idx, mode=self.mode)
+        # logging.info(f"candidate_set is {candidate_set}")
         self.send_model_to_server(0, weights, local_sample_num, candidate_set)
