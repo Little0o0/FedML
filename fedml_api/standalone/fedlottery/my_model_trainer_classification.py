@@ -4,6 +4,7 @@ import torch
 from torch import nn
 import numpy as np
 import math
+import pandas as pd
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
@@ -151,9 +152,12 @@ class MyModelTrainer(ModelTrainer):
                         idx = idx[:num_remove]
                         idx = [x.item() for x in idx]
                         grad = grad.flatten()[idx]
+                        # must use this to avoid the error
+                        grad = [x.item() for x in grad]
 
-                        # self.candidate_set[name] = zip(idx, grad)
-                        self.candidate_set[name] = dict(zip(idx, grad))
+                        # self.candidate_set[name] = dict(zip(idx, grad))
+                        # use list to reduce the key usage.
+                        self.candidate_set[name] = list(zip(idx, grad))
 
                 # Uncommet this following line to avoid nan loss
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)

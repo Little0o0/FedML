@@ -136,9 +136,13 @@ class FedAVGAggregator(object):
         model_list = []
         training_num = 0
         if mode == 3:
-            # for idx in self.model_candidate_dict:
-            #     for name in self.model_candidate_dict[idx]:
-            #         self.model_candidate_dict[idx][name] = dict(self.model_candidate_dict[idx][name])
+            #  because the type of the self.model_candidate_dict[idx][name] is tuple,
+            #  so it needs to be converted to dict
+
+            for idx in self.model_candidate_dict:
+                for name in self.model_candidate_dict[idx]:
+                    self.model_candidate_dict[idx][name] = dict(self.model_candidate_dict[idx][name])
+
             self.get_mask().to_module_device_()
             self.get_mask().step(self.args.epochs)
             candidate_set = dict()
@@ -176,10 +180,11 @@ class FedAVGAggregator(object):
             for idx in range(self.worker_num):
                 for name in candidate_set:
                     for index, grad in self.model_candidate_dict[idx][name].items():
+                        tensor_grad = torch.tensor(grad)
                         if index in candidate_set[name]:
-                            candidate_set[name][index].append(grad)
+                            candidate_set[name][index].append(tensor_grad)
                         else:
-                            candidate_set[name][index] = [grad]
+                            candidate_set[name][index] = [tensor_grad]
 
             # These for average
             # for name in candidate_set:

@@ -1,7 +1,7 @@
 import logging
 
 from .utils import transform_tensor_to_list
-
+import copy
 
 class FedAVGTrainer(object):
 

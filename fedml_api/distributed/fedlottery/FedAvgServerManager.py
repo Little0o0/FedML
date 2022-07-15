@@ -175,7 +175,7 @@ class FedAVGServerManager(ServerManager):
                 self.mode = 5
 
             elif self.mode == 6 and self.args.SFt :
-                if self.args.grand == "entire" and self.round_idx % 10 == 0 and self.round_idx <= 80:
+                if self.args.grand == "entire" and self.round_idx % 10 == 1 and self.round_idx <= 80:
                     self.mode = 3
                     self.aggregator.update_num_growth()
                 elif self.args.grand == "block" and self.round_idx >= 10 and self.round_idx % 10 < 4 and self.round_idx <= 80:
