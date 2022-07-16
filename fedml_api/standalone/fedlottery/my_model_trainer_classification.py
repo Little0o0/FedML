@@ -4,7 +4,6 @@ import torch
 from torch import nn
 import numpy as np
 import math
-import pandas as pd
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
