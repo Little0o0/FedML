@@ -176,7 +176,7 @@ class FedAVGServerManager(ServerManager):
                 # generate new mask.
                 self.mode = 5
 
-            elif self.mode == 6 and self.args.SFt :
+            elif self.mode == 6 and self.args.SFt and self.round_idx <= self.args.T_max :
                 if self.args.grand == "entire" and self.round_idx % self.args.delta_epochs == 0 :
                     self.mode = 3
                     self.aggregator.update_num_growth()
