@@ -156,7 +156,7 @@ class FedAVGAggregator(object):
                 # select one layer for one round
                 candidate_layer_names = [layer_names[idx]]
             elif self.args.grand == "block":
-                if self.args.model == "resnet50":
+                if self.args.model in ["resnet50", "resnet18"]:
                     if self.args.reverse:
                         idx = -(round % 4) + 5
                     else:

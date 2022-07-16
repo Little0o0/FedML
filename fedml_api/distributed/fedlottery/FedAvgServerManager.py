@@ -175,7 +175,7 @@ class FedAVGServerManager(ServerManager):
                 self.mode = 5
 
             elif self.mode == 6 and self.args.SFt :
-                if self.args.grand == "entire" and self.round_idx % 10 == 1 and self.round_idx <= 80:
+                if self.args.grand == "entire" and self.round_idx % 10 == 0 and self.round_idx <= 80:
                     self.mode = 3
                     self.aggregator.update_num_growth()
                 elif self.args.grand == "block" and self.round_idx >= 10 and self.round_idx % 10 < 4 and self.round_idx <= 80:
@@ -194,6 +194,7 @@ class FedAVGServerManager(ServerManager):
             self.round_idx += 1
             if self.round_idx == self.round_num:
                 # post_complete_message_to_sweep_process(self.args)
+                # self.aggregator.test_on_server_for_all_clients(self.round_idx)
                 self.finish()
                 return
             if self.is_preprocessed:

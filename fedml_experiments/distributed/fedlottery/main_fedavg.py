@@ -149,7 +149,7 @@ def add_args(parser):
 
     parser.add_argument("--init_prune_epochs", type=int, default=5, help="the number of epochs for init pruning methods: [SNIP|GraSP|SynFlow|Mag|Random]")
 
-    parser.add_argument("--grand", type=str, default="entire", help="[entire|block|layer]")
+    parser.add_argument("--grand", type=str, default="block", help="[entire|block|layer]")
 
     parser.add_argument("--reverse", type=int, default=1)
 
