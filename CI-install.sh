@@ -36,7 +36,7 @@ conda install h5py
 conda install setproctitle
 conda install networkx
 conda install tqdm
-pip install -U MNN
+pip install -U MNN==1.1.0
 pip install -r requirements.txt
 
 # install the dataset

@@ -16,6 +16,8 @@ try:
 except ImportError:
     from FedML.fedml_core.distributed.communication.message import Message
     from FedML.fedml_core.distributed.server.server_manager import ServerManager
+    from FedML.fedml_api.sparselearning.core import Masking
+    from FedML.fedml_api.sparselearning.funcs.decay import CosineDecay
 
 
 class FedAVGServerManager(ServerManager):

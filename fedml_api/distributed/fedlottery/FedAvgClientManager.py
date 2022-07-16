@@ -16,6 +16,8 @@ try:
 except ImportError:
     from FedML.fedml_core.distributed.client.client_manager import ClientManager
     from FedML.fedml_core.distributed.communication.message import Message
+    from FedML.fedml_api.sparselearning.core import Masking
+    from FedML.fedml_api.sparselearning.funcs.decay import CosineDecay
 
 from .message_define import MyMessage
 from .utils import transform_list_to_tensor, post_complete_message_to_sweep_process

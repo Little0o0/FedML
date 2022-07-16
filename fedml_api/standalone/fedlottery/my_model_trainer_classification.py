@@ -13,6 +13,9 @@ try:
     from fedml_api.initpruning.Utils.prune import prune_loop
 except ImportError:
     from FedML.fedml_core.trainer.model_trainer import ModelTrainer
+    from FedML.fedml_api.initpruning.Pruners.pruners import SNIP, GraSP, SynFlow, Mag, Rand
+    from FedML.fedml_api.initpruning.Utils.generator import masked_parameters
+    from FedML.fedml_api.initpruning.Utils.prune import prune_loop
 
 
 class MyModelTrainer(ModelTrainer):
