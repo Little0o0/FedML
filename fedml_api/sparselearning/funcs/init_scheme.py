@@ -7,9 +7,14 @@ import numpy as np
 import torch
 from torch import nn
 
-if TYPE_CHECKING:
-    from sparselearning.utils.typing_alias import *
-from sparselearning.utils.ops import random_perm
+try:
+    from sparselearning.utils.ops import random_perm
+    if TYPE_CHECKING:
+        from sparselearning.utils.typing_alias import *
+except:
+    from fedml_api.sparselearning.utils.ops import random_perm
+    if TYPE_CHECKING:
+        from fedml_api.sparselearning.utils.typing_alias import *
 
 
 def _remove_fc_adjust_density(masking: "Masking"):

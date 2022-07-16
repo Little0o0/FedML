@@ -1,13 +1,22 @@
 import logging
 
-from sparselearning.counting.helper import get_pre_activations_dict
 import torch
 from torch import nn
 from typing import TYPE_CHECKING
-from sparselearning.counting import micronet_challenge as counting
 
-if TYPE_CHECKING:
-    from sparselearning.utils.typing_alias import *
+try:
+    from sparselearning.counting.helper import get_pre_activations_dict
+    from sparselearning.counting import micronet_challenge as counting
+    if TYPE_CHECKING:
+        from sparselearning.utils.typing_alias import *
+except:
+    from fedml_api.sparselearning.counting.helper import get_pre_activations_dict
+    from fedml_api.sparselearning.counting import micronet_challenge as counting
+    if TYPE_CHECKING:
+        from fedml_api.sparselearning.utils.typing_alias import *
+
+
+
 
 
 @torch.no_grad()
