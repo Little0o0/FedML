@@ -56,7 +56,7 @@ class FedAVGServerManager(ServerManager):
         optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.aggregator.trainer.model.parameters()), lr=self.args.lr)
         self.mask = Masking(
             optimizer,
-            CosineDecay(prune_rate=0.5, T_max=500),
+            CosineDecay(prune_rate=self.args.adjust_rate, T_max=self.args.T_max*self.args.epochs),
             density=self.args.density,
             dense_gradients=False,
             sparse_init=self.args.init_sparse,
@@ -177,13 +177,13 @@ class FedAVGServerManager(ServerManager):
                 self.mode = 5
 
             elif self.mode == 6 and self.args.SFt :
-                if self.args.grand == "entire" and self.round_idx % 10 == 0 and self.round_idx <= 80:
+                if self.args.grand == "entire" and self.round_idx % self.args.delta_epochs == 0 :
                     self.mode = 3
                     self.aggregator.update_num_growth()
-                elif self.args.grand == "block" and self.round_idx >= 10 and self.round_idx % 10 < 4 and self.round_idx <= 80:
+                elif self.args.grand == "block" and self.round_idx % self.args.delta_epochs < 4:
                     self.mode = 3
                     self.aggregator.update_num_growth()
-                elif self.args.grand == "layer" and self.round_idx <= 80:
+                elif self.args.grand == "layer":
                     self.mode = 3
                     self.aggregator.update_num_growth()
             else:

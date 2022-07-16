@@ -153,6 +153,12 @@ def add_args(parser):
 
     parser.add_argument("--reverse", type=int, default=1)
 
+    parser.add_argument("--T_max", type=int, default=80)
+
+    parser.add_argument("--adjust_rate", type=float, default=0.5)
+
+    parser.add_argument("--delta_epochs", type=int, default=10)
+
     args = parser.parse_args()
     return args
 

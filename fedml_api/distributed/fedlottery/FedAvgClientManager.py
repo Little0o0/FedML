@@ -138,7 +138,7 @@ class FedAVGClientManager(ClientManager):
             if self.trainer.trainer.mask is None:
                 init_mask = Masking(
                     None,
-                    CosineDecay(prune_rate=0.5),
+                    CosineDecay(prune_rate=self.args.adjust_rate, T_max=self.args.T_max*self.args.epochs),
                     density=self.args.density,
                     prune_mode="magnitude",
                     growth_mode="absolute-gradient",
