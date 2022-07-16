@@ -389,6 +389,7 @@ registry = {
     "noise-uniform-magnitude":partial(uniform_magnitude, is_noise=True),
     "uniform-magnitude":partial(uniform_magnitude, is_noise=False),
     "erdos-renyi-magnitude": partial(erdos_renyi_magnitude, is_noise=False, is_kernel=False),
+    "noise-erdos-renyi-magnitude-kernel": partial(erdos_renyi_magnitude, is_noise=True, is_kernel=True),
 
     "erdos-renyi": partial(erdos_renyi_init, is_kernel=False),
     "erdos-renyi-kernel": partial(erdos_renyi_init, is_kernel=True),
