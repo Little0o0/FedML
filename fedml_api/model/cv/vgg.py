@@ -79,24 +79,24 @@ cfgs ={
 }
 
 
-def vgg11():
+def vgg11(num_classes):
     r"""VGG 11-layer model (configuration "A") from
     `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`._
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return VGG(make_layers(cfgs['A']))
+    return VGG(make_layers(cfgs['A']), num_classes=num_classes)
 
 
-def vgg11_bn():
+def vgg11_bn(num_classes):
     r"""VGG 11-layer model (configuration "A") with batch normalization
     `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`._
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return VGG(make_layers(cfgs['A'], batch_norm=True))
+    return VGG(make_layers(cfgs['A'], batch_norm=True), num_classes=num_classes)
 
 
 def vgg13():
@@ -120,14 +120,14 @@ def vgg13_bn():
 
 
 
-def vgg16():
+def vgg16(num_classes):
     r"""VGG 16-layer model (configuration "D")
     `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`._
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return VGG(make_layers(cfgs['D']))
+    return VGG(make_layers(cfgs['D']), num_classes=num_classes)
 
 
 def vgg16_bn():

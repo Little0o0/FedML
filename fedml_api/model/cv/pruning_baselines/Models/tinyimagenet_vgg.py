@@ -13,7 +13,7 @@
 import torch
 import torch.nn as nn
 from fedml_api.model.cv.pruning_baselines.Layers import layers
-
+import logging
 cfg = {
     'A' : [64,     'M', 128,      'M', 256, 256,           'M', 512, 512,           'M', 512, 512,           'M'],
     'B' : [64, 64, 'M', 128, 128, 'M', 256, 256,           'M', 512, 512,           'M', 512, 512,           'M'],
@@ -31,7 +31,7 @@ class VGG(nn.Module):
         if dense_classifier:
             self.Linear = nn.Linear
 
-        dim = 512 * 4
+        dim = 512
         
         self.classifier = nn.Sequential(
             self.Linear(dim, dim//2),
@@ -47,6 +47,7 @@ class VGG(nn.Module):
     def forward(self, x):
         output = self.features(x)
         output = output.view(output.size()[0], -1)
+        # logging.info(output.shape)
         output = self.classifier(output)
         return output
 
@@ -96,7 +97,7 @@ def vgg11(input_shape, num_classes, dense_classifier=False, pretrained=False):
     features = make_layers(cfg['A'], batch_norm=False)
     return _vgg('vgg11', features, num_classes, dense_classifier, pretrained)
 
-def vgg11_bn(input_shape, num_classes, dense_classifier=False, pretrained=False):
+def vgg11_bn(num_classes, dense_classifier=False, pretrained=False):
     features = make_layers(cfg['A'], batch_norm=True)
     return _vgg('vgg11_bn', features, num_classes, dense_classifier, pretrained)
 
@@ -108,7 +109,7 @@ def vgg13_bn(input_shape, num_classes, dense_classifier=False, pretrained=False)
     features = make_layers(cfg['B'], batch_norm=True)
     return _vgg('vgg13_bn', features, num_classes, dense_classifier, pretrained)
 
-def vgg16(input_shape, num_classes, dense_classifier=False, pretrained=False):
+def vgg16(num_classes, dense_classifier=False, pretrained=False):
     features = make_layers(cfg['D'], batch_norm=False)
     return _vgg('vgg16', features, num_classes, dense_classifier, pretrained)
 

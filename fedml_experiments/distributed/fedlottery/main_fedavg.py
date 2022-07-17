@@ -143,7 +143,7 @@ def add_args(parser):
 
     parser.add_argument("--baseline", type=str, default="none", help="[SNIP|GraSP|SynFlow|iterative|PruneFL|Mag|Random|none]")
 
-    parser.add_argument("--n_shots", type=int, default=1, help="the number of shot for pre training and pruning")
+    parser.add_argument("--n_shots", type=int, default=5, help="the number of shot for pre training and pruning")
 
     parser.add_argument("--pre_train_epochs", type=int, default=3, help="the number of epochs for pre training")
 
@@ -419,13 +419,30 @@ def create_model(args, model_name, output_dim):
             model = resnet18(output_dim)
 
     elif model_name == "resnet50":
-        if args.baseline not in ["SNIP", "GraSP","SynFlow"]:
+        if args.baseline not in ["SNIP", "GraSP","SynFlow", "Mag"]:
             from fedml_api.model.cv.fedlottery_model.resnet import resnet50
             model = resnet50(output_dim)
         else:
             from fedml_api.model.cv.pruning_baselines.Models.tinyimagenet_resnet import resnet50
             # logging.info("!!!!!!!!! load the model from baseline architecture !!!!!!")
             model = resnet50(output_dim)
+
+    elif model_name == "vgg16":
+        if args.baseline not in ["SNIP", "GraSP", "SynFlow", "Mag"]:
+            from fedml_api.model.cv.vgg import vgg16
+            model = vgg16(num_classes=output_dim)
+
+        else:
+            from fedml_api.model.cv.pruning_baselines.Models.tinyimagenet_vgg import vgg16
+            model = vgg16(num_classes = output_dim)
+
+    elif model_name == "vgg11":
+        if args.baseline not in ["SNIP", "GraSP", "SynFlow", "Mag"]:
+            from fedml_api.model.cv.vgg import vgg11_bn
+            model = vgg11_bn(num_classes=output_dim)
+        else:
+            from fedml_api.model.cv.pruning_baselines.Models.tinyimagenet_vgg import vgg11_bn
+            model = vgg11_bn(num_classes = output_dim)
 
     elif model_name == "resnet56":
         model = resnet56(class_num=output_dim)
