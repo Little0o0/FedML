@@ -26,7 +26,7 @@ from fedml_api.data_preprocessing.stackoverflow_nwp.data_loader import load_part
 from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
 from fedml_api.data_preprocessing.ImageNet.data_loader import load_partition_data_ImageNet
 from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_data_landmarks
-
+from fedml_api.data_preprocessing.Tiny_ImageNet.data_loader import load_partition_data_TinyImageNet_v2
 from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10, load_partition_data_cifar10_v2
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10, load_partition_data_cinic10_v2
@@ -290,6 +290,28 @@ def load_data(args, dataset_name):
             batch_size=args.batch_size,
         )
 
+    elif dataset_name == "tiny-imagenet":
+        logging.info("load_data. dataset_name = %s" % dataset_name)
+        args.data_dir = os.path.join(args.data_dir, "tiny-imagenet-200")
+        (
+            train_data_num,
+            test_data_num,
+            train_data_global,
+            test_data_global,
+            train_data_local_num_dict,
+            train_data_local_dict,
+            test_data_local_dict,
+            class_num,
+        ) = load_partition_data_TinyImageNet_v2(
+            dataset=dataset_name,
+            data_dir=args.data_dir,
+            partition_method=None,
+            partition_alpha=None,
+            client_number=args.client_num_in_total,
+            batch_size=args.batch_size,
+            n_shots = args.n_shots,
+        )
+
     elif dataset_name == "gld23k":
         logging.info("load_data. dataset_name = %s" % dataset_name)
         args.client_num_in_total = 233
@@ -371,6 +393,7 @@ def load_data(args, dataset_name):
             args.partition_alpha,
             args.client_num_in_total,
             args.batch_size,
+            n_shots=args.n_shots
         )
     dataset = [
         train_data_num,
