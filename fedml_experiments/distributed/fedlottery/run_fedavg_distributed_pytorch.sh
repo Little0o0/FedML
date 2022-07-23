@@ -5,14 +5,16 @@ WORKER_NUM=$2
 MODEL=$3
 ROUND=$4
 EPOCH=$5
-DATASET=$6
-DATA_DIR=$7
-PRUNE=$8
-ABNS=$9
-SFT=${10}
-NUM=${11}
-DENSITY=${12}
-BASELINE=${13}
+BATCH=$6
+DATASET=$7
+DATA_DIR=$8
+PRUNE=$9
+ABNS=${10}
+SFT=${11}
+NUM=${12}
+DENSITY=${13}
+BASELINE=${14}
+SHOTS=${15}
 
 PROCESS_NUM=`expr $WORKER_NUM + 1`
 echo $PROCESS_NUM
@@ -29,9 +31,11 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --client_num_per_round $WORKER_NUM \
   --comm_round $ROUND \
   --epochs $EPOCH \
+  --batch_size $BATCH \
   --prune $PRUNE \
   --ABNS $ABNS \
   --SFt $SFT \
   --num_candidates $NUM \
   --density $DENSITY \
-  --baseline $BASELINE
+  --baseline $BASELINE \
+  --n_shots $SHOTS
