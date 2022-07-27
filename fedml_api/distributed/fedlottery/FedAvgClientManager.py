@@ -130,7 +130,7 @@ class FedAVGClientManager(ClientManager):
 
         self.trainer.update_model(model_params)
         self.trainer.update_dataset(int(client_index))
-        assert self.mode in [0, 3, 5, 6]
+        assert self.mode in [0, 3, 5, 6, 7]
 
         if self.mode in [0, 6]:
             pass
@@ -168,7 +168,7 @@ class FedAVGClientManager(ClientManager):
 
     def send_model_to_server(self, receive_id, weights, local_sample_num, candidate_set):
         # for mode 0, mode 3, mode 5, mode 6
-        assert self.mode in [0, 3, 5, 6]
+        assert self.mode in [0, 3, 5, 6, 7]
         logging.info(f" round_id = {self.round_idx}, client mode is {self.mode}")
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, weights)

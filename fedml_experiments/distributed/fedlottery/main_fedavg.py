@@ -157,7 +157,7 @@ def add_args(parser):
 
     parser.add_argument("--adjust_rate", type=float, default=0.1)
 
-    parser.add_argument("--delta_epochs", type=int, default=5)
+    parser.add_argument("--delta_epochs", type=int, default=10)
 
     args = parser.parse_args()
     return args

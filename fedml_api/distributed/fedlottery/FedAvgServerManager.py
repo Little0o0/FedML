@@ -191,6 +191,13 @@ class FedAVGServerManager(ServerManager):
                 update_sparsity = min(self.args.density * self.args.T_max / (self.round_idx + 1), 1.0)
                 # update_sparsity =  1.0 - (1.0 - self.args.density)*((self.round_idx + 1) / self.round_idx)
                 self.aggregator.set_baseline_init_prune_model(epochs=1, sparsity = update_sparsity)
+
+            elif self.mode == 0 and self.args.baseline == "PruneFL" \
+                    and self.round_idx <= self.args.T_max \
+                    and self.round_idx % self.args.delta_epochs == 0 :
+                self.mode = 7
+            elif self.mode == 7:
+                self.mode = 0
             else:
                 pass
 
@@ -241,7 +248,7 @@ class FedAVGServerManager(ServerManager):
 
     def send_message_sync_model_to_client(self, receive_id, global_model_params, client_index, mode,
                                           mask_dict={}, num_growth={}):
-        assert mode in [0, 3, 5, 6]
+        assert mode in [0, 3, 5, 6, 7]
         # logging.info("send_message_sync_model_to_client. receive_id = %d" % receive_id)
         message = Message(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODE, mode)

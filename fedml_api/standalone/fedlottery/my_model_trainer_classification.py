@@ -112,7 +112,7 @@ class MyModelTrainer(ModelTrainer):
         if epochs is None:
             epochs = args.epochs
 
-        assert mode in [0, 3, 5, 6]
+        assert mode in [0, 3, 5, 6, 7]
 
         model = self.model
         model.to(device)
@@ -132,6 +132,13 @@ class MyModelTrainer(ModelTrainer):
             self.mask.to_module_device_()
             self.mask.apply_mask()
             masking_print_FLOPs = True
+
+        if mode == 7:
+            self.candidate_set = {}
+            for name, val in self.model.named_buffers():
+                if "mask" in name:
+                    self.candidate_set[name] = torch.zeros_like(val).cpu()
+                    val.requires_grad = True
 
         epoch_loss = []
 
@@ -180,6 +187,11 @@ class MyModelTrainer(ModelTrainer):
                 # Uncommet this following line to avoid nan loss
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
+                if mode == 7:
+                    for name, weight in self.model.named_buffers():
+                        if "mask" in name:
+                            self.candidate_set[name] += weight.grad.cpu()
+
                 if mode in [3, 5, 6]:
                     self.mask.step()
                 else:
@@ -189,6 +201,14 @@ class MyModelTrainer(ModelTrainer):
                 #            100. * (batch_idx + 1) / len(train_data), loss.item()))
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
+
+        if mode == 7:
+            for name, weight in self.model.named_buffers():
+                if "mask" in name:
+                    self.candidate_set[name] /= args.epochs * len(train_data)
+                    weight.grad.data.zero_()
+                    weight.requires_grad = False
+
 
     def update_BN_with_local_data(self, train_data, device, args, num_epoch = 5):
         model = self.model

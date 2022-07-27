@@ -61,9 +61,11 @@ class FedAVGTrainer(object):
     def train(self, round_idx = None, mode=0, noMask=True):
         self.args.round_idx = round_idx
         self.trainer.train(self.train_local, self.device, self.args, mode=mode)
+        if mode == 7:
+            noMask = False
         weights = self.trainer.get_model_params(noMask=noMask)
 
-        candidate_set = dict() if mode != 3 else self.trainer.get_model_candidate_set()
+        candidate_set = dict() if mode not in [3, 7] else self.trainer.get_model_candidate_set()
         # transform Tensor to list
         if self.args.is_mobile == 1:
             weights = transform_tensor_to_list(weights)
