@@ -231,7 +231,7 @@ def load_partition_data_TinyImageNet_v2(dataset, data_dir,
     for label in label_set:
         indices = list(np.where(label == test_data_global.dataset._train_labels)[0])
         sample_indices += random.sample(indices, n_shots)
-    logging.info(sample_indices)
+    # logging.info(sample_indices)
     val_data_global = get_sub_test_dataloader_tinyimagenet(test_dataset, batch_size, sample_indices)
 
     # get local dataset

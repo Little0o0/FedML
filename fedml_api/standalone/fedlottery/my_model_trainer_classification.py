@@ -123,6 +123,7 @@ class MyModelTrainer(ModelTrainer):
         for epoch in range(epochs):
             batch_loss = []
             for batch_idx, (x, labels) in enumerate(train_data):
+                # logging.info(f"########{epoch}/{epochs}-{batch_idx}/{len(train_data)}########")
                 x, labels = x.to(device), labels.to(device)
                 model.zero_grad()
                 log_probs = model(x)
@@ -207,6 +208,7 @@ class MyModelTrainer(ModelTrainer):
         criterion = nn.CrossEntropyLoss().to(device)
 
         with torch.no_grad():
+            logging.info(f"test data num is {len(test_data) * args.batch_size}")
             for batch_idx, (x, target) in enumerate(test_data):
                 x = x.to(device)
                 target = target.to(device)

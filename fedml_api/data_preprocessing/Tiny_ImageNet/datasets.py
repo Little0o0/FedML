@@ -95,7 +95,7 @@ class ImageNet(data.Dataset):
         if self.train:
             self.data_dir = os.path.join(data_dir, 'train')
         else:
-            self.data_dir = os.path.join(data_dir, 'test')
+            self.data_dir = os.path.join(data_dir, 'val')
 
         self.all_data, self.data_local_num_dict, self.net_dataidx_map = self.__getdatasets__()
         # print(self.net_dataidx_map)

@@ -474,7 +474,7 @@ def create_model(args, model_name, output_dim):
     # TODO
     elif model_name == "mobilenet_v3":
         """model_mode \in {LARGE: 5.15M, SMALL: 2.94M}"""
-        model = MobileNetV3(model_mode="LARGE")
+        model = MobileNetV3(model_mode="LARGE", num_classes=output_dim)
     elif model_name == "efficientnet":
         model = EfficientNet()
 
