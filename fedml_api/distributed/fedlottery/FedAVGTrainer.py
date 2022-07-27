@@ -58,10 +58,10 @@ class FedAVGTrainer(object):
         self.local_test_number = self.test_data_local_num_dict[client_index]
         # self.val_local = self.val_data_local_dict[client_index]
 
-    def train(self, round_idx = None, mode=0):
+    def train(self, round_idx = None, mode=0, noMask=True):
         self.args.round_idx = round_idx
         self.trainer.train(self.train_local, self.device, self.args, mode=mode)
-        weights = self.trainer.get_model_params(noMask=True)
+        weights = self.trainer.get_model_params(noMask=noMask)
 
         candidate_set = dict() if mode != 3 else self.trainer.get_model_candidate_set()
         # transform Tensor to list

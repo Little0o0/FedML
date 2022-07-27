@@ -71,8 +71,8 @@ class MyModelTrainer(ModelTrainer):
                 )
                 self.num_growth[name] = num_remove
 
-    def init_prune_loop(self, prune_data, device, args, epochs, schedule = "exponential", scope="local",
-                        reinitialize=False, train_mode=False, shuffle=False, invert=False):
+    def init_prune_loop(self, prune_data, device, args, epochs, schedule = "linear", scope="local",
+                        reinitialize=False, train_mode=False, shuffle=False, invert=False, sparsity=None):
         pruner = None
         self.model.to(device)
         if args.baseline == "SNIP":
@@ -83,11 +83,26 @@ class MyModelTrainer(ModelTrainer):
             pruner = SynFlow(masked_parameters(self.model, 0, 0, 0))
         elif args.baseline == "Mag":
             pruner = Mag(masked_parameters(self.model, 0, 0, 0))
+            schedule = "direct"
+            epochs = 1
         elif args.baseline == "Random":
             pruner = Rand(masked_parameters(self.model, 0, 0, 0))
+            schedule = "direct"
+            epochs = 1
+        elif args.baseline == "iteratively":
+            pruner = Mag(masked_parameters(self.model, 0, 0, 0))
+            if sparsity is None:
+                sparsity = 1.0
+            schedule = "direct"
+            epochs = 1
+        elif args.baseline == "PruneFL":
+            pruner = Mag(masked_parameters(self.model, 0, 0, 0))
+            schedule = "direct"
+            epochs = 1
         else:
             raise Exception(f"have not implement {args.baseline} yet !!!!")
-        sparsity = args.density
+        if sparsity is None:
+            sparsity = args.density
         loss = nn.CrossEntropyLoss()
         prune_loop(self.model, loss, pruner, prune_data, device, sparsity,
                    schedule, scope, epochs, reinitialize, train_mode, shuffle, invert)

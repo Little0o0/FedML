@@ -19,11 +19,15 @@ def prune_loop(model, loss, pruner, dataloader, device, sparsity, schedule, scop
             sparse = sparsity**((epoch + 1) / epochs)
         elif schedule == 'linear':
             sparse = 1.0 - (1.0 - sparsity)*((epoch + 1) / epochs)
+        elif schedule == 'direct' or (epoch + 1) == len(epochs):
+            sparse = sparsity
         # Invert scores
         if invert:
             pruner.invert()
         pruner.mask(sparse, scope)
-    
+
+
+
     # Reainitialize weights
     if reinitialize:
         model._initialize_weights()

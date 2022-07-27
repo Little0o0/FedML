@@ -47,8 +47,8 @@ class FedAVGAggregator(object):
     def apply_mask(self):
         self.trainer.mask.apply_mask()
 
-    def set_baseline_init_prune_model(self, epochs):
-        self.trainer.init_prune_loop(self.train_global, self.device, self.args, epochs=epochs)
+    def set_baseline_init_prune_model(self, epochs, sparsity=None):
+        self.trainer.init_prune_loop(self.train_global, self.device, self.args, epochs=epochs, sparsity=sparsity)
 
     def get_global_model_params(self):
         return self.trainer.get_model_params()

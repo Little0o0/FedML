@@ -123,7 +123,7 @@ def init_server(
         )
 
     server_manager.pre_train(epochs=args.pre_train_epochs)
-    if args.prune and args.baseline in ["SNIP", "GraSP", "SynFlow", "Mag", "Random"]:
+    if args.prune and args.baseline != "none":
         server_manager.init_prune_model(args.init_prune_epochs)
     if args.prune and args.baseline == "none":
         # it needs generate candidate pools

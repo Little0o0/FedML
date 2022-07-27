@@ -141,7 +141,7 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="noise-erdos-renyi-magnitude-kernel",
     help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
 
-    parser.add_argument("--baseline", type=str, default="none", help="[SNIP|GraSP|SynFlow|iterative|PruneFL|Mag|Random|none]")
+    parser.add_argument("--baseline", type=str, default="none", help="[SNIP|GraSP|SynFlow|iteratively|PruneFL|Mag|Random|none]")
 
     parser.add_argument("--n_shots", type=int, default=5, help="the number of shot for pre training and pruning")
 
@@ -434,7 +434,7 @@ def create_model(args, model_name, output_dim):
         model = RNN_StackOverFlow()
 
     elif model_name == "resnet18":
-        if args.baseline not in ["SNIP", "GraSP","SynFlow", "Mag", "Random"]:
+        if args.baseline == "none":
             from fedml_api.model.cv.fedlottery_model.resnet import resnet18
             model = resnet18(output_dim)
         else:
@@ -442,7 +442,7 @@ def create_model(args, model_name, output_dim):
             model = resnet18(output_dim)
 
     elif model_name == "resnet50":
-        if args.baseline not in ["SNIP", "GraSP","SynFlow", "Mag"]:
+        if args.baseline == "none":
             from fedml_api.model.cv.fedlottery_model.resnet import resnet50
             model = resnet50(output_dim)
         else:
@@ -451,7 +451,7 @@ def create_model(args, model_name, output_dim):
             model = resnet50(output_dim)
 
     elif model_name == "vgg16":
-        if args.baseline not in ["SNIP", "GraSP", "SynFlow", "Mag"]:
+        if args.baseline == "none":
             from fedml_api.model.cv.vgg import vgg16
             model = vgg16(num_classes=output_dim)
 
@@ -460,7 +460,7 @@ def create_model(args, model_name, output_dim):
             model = vgg16(num_classes = output_dim)
 
     elif model_name == "vgg11":
-        if args.baseline not in ["SNIP", "GraSP", "SynFlow", "Mag"]:
+        if args.baseline == "none":
             from fedml_api.model.cv.vgg import vgg11_bn
             model = vgg11_bn(num_classes=output_dim)
         else:

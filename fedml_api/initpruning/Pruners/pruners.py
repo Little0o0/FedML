@@ -29,6 +29,11 @@ class Pruner:
                 zero = torch.tensor([0.]).to(mask.device)
                 one = torch.tensor([1.]).to(mask.device)
                 mask.copy_(torch.where(score <= threshold, zero, one))
+        # else:
+        #     for mask, param in self.masked_parameters:
+        #         score = self.scores[id(param)]
+        #         one = torch.ones(score.size).to(mask.device)
+        #         mask.copy_(one)
     
     def _local_mask(self, sparsity):
         r"""Updates masks of model with scores by sparsity level parameter-wise.
@@ -41,6 +46,9 @@ class Pruner:
                 zero = torch.tensor([0.]).to(mask.device)
                 one = torch.tensor([1.]).to(mask.device)
                 mask.copy_(torch.where(score <= threshold, zero, one))
+            # else:
+            #     one = torch.tensor([1.]).to(mask.device)
+            #     mask.copy_(one)
 
     def mask(self, sparsity, scope):
         r"""Updates masks of model with scores by sparsity according to scope.
@@ -77,10 +85,12 @@ class Pruner:
     def stats(self):
         r"""Returns remaining and total number of prunable parameters.
         """
+        # logging.info("begin info !!!!")
         remaining_params, total_params = 0, 0 
         for mask, _ in self.masked_parameters:
-             remaining_params += mask.detach().cpu().numpy().sum()
-             total_params += mask.numel()
+            remaining_params += mask.detach().cpu().numpy().sum()
+            total_params += mask.numel()
+        # logging.info(f"total_params is {total_params}")
         return remaining_params, total_params
 
 
