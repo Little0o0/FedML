@@ -144,8 +144,8 @@ class MyModelTrainer(ModelTrainer):
 
         for epoch in range(epochs):
             batch_loss = []
+            logging.info(f"########client {self.id} : {epoch}/{epochs}########")
             for batch_idx, (x, labels) in enumerate(train_data):
-                # logging.info(f"########{epoch}/{epochs}-{batch_idx}/{len(train_data)}########")
                 x, labels = x.to(device), labels.to(device)
                 model.zero_grad()
                 log_probs = model(x)
