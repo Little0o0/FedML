@@ -199,9 +199,13 @@ class FedAVGServerManager(ServerManager):
                     and self.round_idx % self.args.delta_epochs == 0 :
                 self.mode = 7
             elif self.mode == 7:
+                global_model_params = self.aggregator.trainer.get_model_params(noMask=False)
                 self.mode = 0
             else:
                 pass
+            # for patitial
+            # if self.args.baseline != "none":
+            #     global_model_params = self.aggregator.trainer.get_model_params(noMask=False)
 
             num_growth = dict() if self.mode != 3 else self.aggregator.trainer.get_num_growth()
             mask_dict = dict() if self.mode != 5 else self.aggregator.trainer.get_model_mask_dict()

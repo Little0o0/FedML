@@ -208,8 +208,9 @@ class FedAVGAggregator(object):
         # logging.info("################aggregate: %d" % len(model_list))
         (num0, averaged_params) = model_list[0]
         for k in averaged_params.keys():
-            if "mask" in k :
+            if "mask" in k:
                 continue
+
             for i in range(0, len(model_list)):
                 local_sample_number, local_model_params = model_list[i]
                 w = local_sample_number / training_num
@@ -229,20 +230,21 @@ class FedAVGAggregator(object):
                         averaged_grad[key] += w * gard
                     else:
                         averaged_grad[key] = w * gard
+            # logging.info(averaged_grad)
 
-            for name in averaged_params:
-                if "mask" in name:
+
+            for name in averaged_grad:
+                if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
                     # logging.info(f"mask name is {name}")
                     k = int((1.0 - self.args.density) * averaged_grad[name].numel())
                     threshold, _ = torch.kthvalue(torch.flatten(averaged_grad[name]), k)
                     zero = torch.tensor([0.])
                     one = torch.tensor([1.])
                     averaged_params[name] = torch.where(averaged_grad[name] <= threshold, zero, one)
+                    logging.info(f"{name} size is {averaged_params[name].size()}, left {torch.sum(averaged_params[name])}")
 
         # update the global model which is cached at the server side
         self.set_global_model_params(averaged_params)
-
-
 
         # if mode in [3, 5, 6]:
         #     self.trainer.model.to(self.device)

@@ -136,21 +136,33 @@ class MyModelTrainer(ModelTrainer):
         if mode == 7:
             self.candidate_set = {}
             for name, val in self.model.named_buffers():
-                if "mask" in name:
+                if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
                     self.candidate_set[name] = torch.zeros_like(val).cpu()
                     val.requires_grad = True
 
-        epoch_loss = []
+        # epoch_loss = []
 
         for epoch in range(epochs):
-            batch_loss = []
+            # batch_loss = []
             logging.info(f"########client {self.id} : {epoch}/{epochs}########")
             for batch_idx, (x, labels) in enumerate(train_data):
+                # if mode == 7:
+                #     for name, val in self.model.named_buffers():
+                #         if "mask" in name:
+                #             val.requires_grad = True
+
                 x, labels = x.to(device), labels.to(device)
                 model.zero_grad()
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
                 loss.backward()
+
+                if mode == 7:
+                    for name, weight in self.model.named_buffers():
+                        if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
+                            self.candidate_set[name] += torch.pow(weight.grad.cpu(), 2)
+                            weight.grad.data.zero_()
+                            # weight.requires_grad = False
 
                 if (mode == 3
                     and (epoch + 1) == args.epochs
@@ -187,11 +199,6 @@ class MyModelTrainer(ModelTrainer):
                 # Uncommet this following line to avoid nan loss
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
-                if mode == 7:
-                    for name, weight in self.model.named_buffers():
-                        if "mask" in name:
-                            self.candidate_set[name] += weight.grad.cpu()
-
                 if mode in [3, 5, 6]:
                     self.mask.step()
                 else:
@@ -199,16 +206,14 @@ class MyModelTrainer(ModelTrainer):
                 # logging.info('Update Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 #     epoch, (batch_idx + 1) * args.batch_size, len(train_data) * args.batch_size,
                 #            100. * (batch_idx + 1) / len(train_data), loss.item()))
-                batch_loss.append(loss.item())
-            epoch_loss.append(sum(batch_loss) / len(batch_loss))
+            #     batch_loss.append(loss.item())
+            # epoch_loss.append(sum(batch_loss) / len(batch_loss))
 
         if mode == 7:
             for name, weight in self.model.named_buffers():
-                if "mask" in name:
+                if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
                     self.candidate_set[name] /= args.epochs * len(train_data)
-                    weight.grad.data.zero_()
                     weight.requires_grad = False
-
 
     def update_BN_with_local_data(self, train_data, device, args, num_epoch = 5):
         model = self.model

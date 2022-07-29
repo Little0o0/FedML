@@ -132,7 +132,7 @@ class FedAVGClientManager(ClientManager):
         self.trainer.update_dataset(int(client_index))
         assert self.mode in [0, 3, 5, 6, 7]
 
-        if self.mode in [0, 6]:
+        if self.mode in [0, 6, 7]:
             pass
         elif self.mode == 5:
             if self.trainer.trainer.mask is None:
@@ -179,6 +179,7 @@ class FedAVGClientManager(ClientManager):
 
     def __train(self):
         # logging.info("#######training########### round_id = %d" % self.round_idx)
-        weights, local_sample_num, candidate_set = self.trainer.train(round_idx = self.round_idx, mode=self.mode)
+        noMask = True if self.mode != 7 else False
+        weights, local_sample_num, candidate_set = self.trainer.train(round_idx = self.round_idx, mode=self.mode, noMask=noMask)
         # logging.info(f"candidate_set is {candidate_set}")
         self.send_model_to_server(0, weights, local_sample_num, candidate_set)
