@@ -71,7 +71,7 @@ class MyModelTrainer(ModelTrainer):
                 )
                 self.num_growth[name] = num_remove
 
-    def init_prune_loop(self, prune_data, device, args, epochs, schedule = "linear", scope="local",
+    def init_prune_loop(self, prune_data, device, args, epochs, schedule = "linear", scope="global",
                         reinitialize=False, train_mode=False, shuffle=False, invert=False, sparsity=None):
         pruner = None
         self.model.to(device)
