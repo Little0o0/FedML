@@ -232,16 +232,50 @@ class FedAVGAggregator(object):
                         averaged_grad[key] = w * gard
             # logging.info(averaged_grad)
 
+            # logging.info(averaged_params.keys())
 
             for name in averaged_grad:
-                if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
+                if "mask" in name and "weight" in name and \
+                        "shortcut" not in name and \
+                        "conv1" not in name and \
+                        "fc."  not in name and \
+                        len(averaged_params[name].size()) != 1:
                     # logging.info(f"mask name is {name}")
-                    k = int((1.0 - self.args.density) * averaged_grad[name].numel())
-                    threshold, _ = torch.kthvalue(torch.flatten(averaged_grad[name]), k)
-                    zero = torch.tensor([0.])
-                    one = torch.tensor([1.])
-                    averaged_params[name] = torch.where(averaged_grad[name] <= threshold, zero, one)
-                    logging.info(f"{name} size is {averaged_params[name].size()}, left {torch.sum(averaged_params[name])}")
+
+                    # prune
+                    ratio = 0.5
+                    num_connections = int(torch.prod(torch.tensor(averaged_params[name].size())).item())
+                    num_ones = int(torch.sum(averaged_params[name]).item())
+                    num_zeros = num_connections - num_ones
+                    num_adjust = int(num_ones * ratio)
+                    k = num_zeros + num_adjust
+                    logging.info(f"{name} size is {averaged_params[name].size()}, {num_connections} weights, {num_ones} unpruned, {num_adjust} need to adjust")
+
+                    weight = averaged_params[name.replace("_mask", "")]
+                    assert torch.equal(torch.tensor(weight.size()), torch.tensor(averaged_params[name].size()))
+
+                    if weight.dtype == torch.float16:
+                        remain_weight = weight * averaged_params[name].half()
+                    else:
+                        remain_weight = weight * averaged_params[name].float()
+
+                    x, idx = torch.sort(torch.abs(remain_weight.data.view(-1)))
+
+                    averaged_params[name].data.view(-1)[idx[:k]] = 0.0
+
+                    if averaged_grad[name].dtype == torch.float16:
+                        averaged_grad[name] = averaged_grad[name] * (averaged_params[name] == 0).half()
+                    else:
+                        averaged_grad[name] = averaged_grad[name] * (averaged_params[name] == 0).float()
+
+                    y, idx = torch.sort(torch.abs(averaged_grad[name]).flatten(), descending=True)
+                    averaged_params[name].data.view(-1)[idx[: int(num_adjust)]] = 1.0
+                    # k = int((1.0 - self.args.density) * averaged_grad[name].numel())
+                    # threshold, _ = torch.kthvalue(torch.flatten(averaged_grad[name]), k)
+                    # zero = torch.tensor([0.])
+                    # one = torch.tensor([1.])
+                    # averaged_params[name] = torch.where(averaged_grad[name] <= threshold, zero, one)
+                    # logging.info(f"{name} size is {averaged_params[name].size()}, left {torch.sum(averaged_params[name])}")
 
         # update the global model which is cached at the server side
         self.set_global_model_params(averaged_params)

@@ -4,7 +4,7 @@ import os.path
 import numpy as np
 import torch.utils.data as data
 from PIL import Image
-
+import random
 
 def has_file_allowed_extension(filename, extensions):
     """Checks if a file is an allowed extension.
@@ -39,8 +39,9 @@ def make_dataset(dir, class_to_idx, extensions):
             continue
 
         target_num = 0
+        # !!!!!!!!!!!!!!!!!! reduce dataset size !!!!!!!!!!!!!!!!!!!!!!!!!!
         for root, _, fnames in sorted(os.walk(d)):
-            for fname in sorted(fnames):
+            for fname in sorted(random.sample(fnames, int(len(fnames) * 0.1))):
                 if has_file_allowed_extension(fname, extensions):
                     path = os.path.join(root, fname)
                     item = (path, class_to_idx[target])
@@ -99,6 +100,7 @@ class ImageNet(data.Dataset):
 
         self.all_data, self.data_local_num_dict, self.net_dataidx_map = self.__getdatasets__()
         # print(self.net_dataidx_map)
+        # reduce dataset size
         if dataidxs == None:
             self.local_data = self.all_data
         elif not self.train:
@@ -113,6 +115,8 @@ class ImageNet(data.Dataset):
             for idxs in dataidxs:
                 (begin, end) = self.net_dataidx_map[idxs]
                 self.local_data += self.all_data[begin: end]
+
+        # reduce dataset size
 
     def get_local_data(self):
         return self.local_data

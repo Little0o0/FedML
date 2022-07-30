@@ -136,7 +136,11 @@ class MyModelTrainer(ModelTrainer):
         if mode == 7:
             self.candidate_set = {}
             for name, val in self.model.named_buffers():
-                if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
+                if "mask" in name and "weight" in name and \
+                        "shortcut" not in name and \
+                        "conv1" not in name and \
+                        "fc." not in name and \
+                        len(val.size()) != 1:
                     self.candidate_set[name] = torch.zeros_like(val).cpu()
                     val.requires_grad = True
 
@@ -159,7 +163,11 @@ class MyModelTrainer(ModelTrainer):
 
                 if mode == 7:
                     for name, weight in self.model.named_buffers():
-                        if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
+                        if "mask" in name and "weight" in name and \
+                                "shortcut" not in name and \
+                                "conv1" not in name and \
+                                "fc." not in name and \
+                                len(weight.size()) != 1:
                             self.candidate_set[name] += torch.pow(weight.grad.cpu(), 2)
                             weight.grad.data.zero_()
                             # weight.requires_grad = False
@@ -211,7 +219,11 @@ class MyModelTrainer(ModelTrainer):
 
         if mode == 7:
             for name, weight in self.model.named_buffers():
-                if "mask" in name and "weight" in name and "shortcut" not in name and "conv1" not in name:
+                if "mask" in name and "weight" in name and \
+                        "shortcut" not in name and \
+                        "conv1" not in name and \
+                        "fc." not in name and \
+                        len(weight.size()) != 1:
                     self.candidate_set[name] /= args.epochs * len(train_data)
                     weight.requires_grad = False
 
