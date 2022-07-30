@@ -23,7 +23,7 @@ from fedml_api.data_preprocessing.fed_shakespeare.data_loader import load_partit
 from fedml_api.data_preprocessing.shakespeare.data_loader import load_partition_data_shakespeare
 from fedml_api.data_preprocessing.stackoverflow_lr.data_loader import load_partition_data_federated_stackoverflow_lr
 from fedml_api.data_preprocessing.stackoverflow_nwp.data_loader import load_partition_data_federated_stackoverflow_nwp
-from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
+from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist, load_partition_data_mnist_v2
 from fedml_api.data_preprocessing.ImageNet.data_loader import load_partition_data_ImageNet
 from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_data_landmarks
 from fedml_api.data_preprocessing.Tiny_ImageNet.data_loader import load_partition_data_TinyImageNet_v2
@@ -176,7 +176,9 @@ def load_data(args, dataset_name):
             train_data_local_dict,
             test_data_local_dict,
             class_num,
-        ) = load_partition_data_mnist(args.batch_size)
+        ) = load_partition_data_mnist_v2(args.batch_size,
+                                         args.client_num_in_total,
+                                         n_shots = args.n_shots,)
         """
         For shallow NN or linear models, 
         we uniformly sample a fraction of clients each round (as the original FedAvg paper)

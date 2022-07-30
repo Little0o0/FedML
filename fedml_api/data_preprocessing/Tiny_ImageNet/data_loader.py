@@ -252,6 +252,10 @@ def load_partition_data_TinyImageNet_v2(dataset, data_dir,
         elif client_number == 5:
             dataidxs = [client_idx * 40 + i for i in range(40)]
             data_local_num_dict[client_idx] = sum(class_num_dict[client_idx + i] for i in range(40))
+        elif 200 % client_number == 0:
+            interval = 200 // client_number
+            dataidxs = [client_idx * interval + i for i in range(interval)]
+            data_local_num_dict[client_idx] = sum(class_num_dict[client_idx + i] for i in range(interval))
         else:
             raise NotImplementedError("Not support other client_number for now!")
 

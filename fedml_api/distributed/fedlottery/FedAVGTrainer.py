@@ -24,7 +24,10 @@ class FedAVGTrainer(object):
         self.args = args
 
         for key in self.test_data_local_dict:
-            self.test_data_local_num_dict[key] = len(self.test_data_local_dict[key].dataset)
+            if args.dataset != "mnist":
+                self.test_data_local_num_dict[key] = len(self.test_data_local_dict[key].dataset)
+            else:
+                self.test_data_local_num_dict[key] = len(self.test_data_local_dict[key])*args.batch_size
         # self.val_data_local_dict, self.val_data_local_num_dict = self.generate_val_data_local_dict(train_data_local_dict, 0.1)
 
 
