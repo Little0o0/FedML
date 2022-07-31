@@ -29,6 +29,7 @@ from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_da
 from fedml_api.data_preprocessing.Tiny_ImageNet.data_loader import load_partition_data_TinyImageNet_v2
 from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10, load_partition_data_cifar10_v2
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
+from fedml_api.data_preprocessing.svhn.data_loader import load_partition_data_svhn, load_partition_data_svhn_v2
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10, load_partition_data_cinic10_v2
 
 from fedml_api.model.cv.cnn import CNN_DropOut
@@ -176,9 +177,10 @@ def load_data(args, dataset_name):
             train_data_local_dict,
             test_data_local_dict,
             class_num,
-        ) = load_partition_data_mnist_v2(args.batch_size,
-                                         args.client_num_in_total,
-                                         n_shots = args.n_shots,)
+        ) = load_partition_data_mnist(args.batch_size,)
+        # ) = load_partition_data_mnist_v2(args.batch_size,
+        #                                  args.client_num_in_total,
+        #                                  n_shots = args.n_shots,)
         """
         For shallow NN or linear models, 
         we uniformly sample a fraction of clients each round (as the original FedAvg paper)
@@ -376,6 +378,8 @@ def load_data(args, dataset_name):
             data_loader = load_partition_data_cifar100
         elif dataset_name == "cinic10":
             data_loader = load_partition_data_cinic10_v2
+        elif dataset_name == "svhn":
+            data_loader = load_partition_data_svhn_v2
         else:
             data_loader = load_partition_data_cifar10_v2
 
