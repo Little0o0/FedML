@@ -243,7 +243,7 @@ class FedAVGAggregator(object):
                     # logging.info(f"mask name is {name}")
 
                     # prune
-                    ratio = 0.5
+                    ratio = self.args.adjust_rate
                     num_connections = int(torch.prod(torch.tensor(averaged_params[name].size())).item())
                     num_ones = int(torch.sum(averaged_params[name]).item())
                     num_zeros = num_connections - num_ones

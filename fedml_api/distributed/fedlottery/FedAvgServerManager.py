@@ -188,9 +188,9 @@ class FedAVGServerManager(ServerManager):
                     self.aggregator.update_num_growth()
 
             elif self.mode == 0 and self.args.baseline == "iteratively" \
-                    and (self.round_idx + 1) <= 50 \
-                    and (self.round_idx + 1) % 5 == 0:
-                update_sparsity = 1.0 - (1 - self.args.density) / 50 * (self.round_idx + 1)
+                    and (self.round_idx + 1) <= self.args.T_max \
+                    and (self.round_idx + 1) % self.args.delta_epochs == 0:
+                update_sparsity = 1.0 - (1 - self.args.density) / self.args.T_max * (self.round_idx + 1)
                 # update_sparsity =  1.0 - (1.0 - self.args.density)*((self.round_idx + 1) / self.round_idx)
                 self.aggregator.set_baseline_init_prune_model(epochs=1, sparsity = update_sparsity)
                 global_model_params = self.aggregator.trainer.get_model_params(noMask=False)
