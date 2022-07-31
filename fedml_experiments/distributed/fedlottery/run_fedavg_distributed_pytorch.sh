@@ -15,6 +15,8 @@ NUM=${12}
 DENSITY=${13}
 BASELINE=${14}
 SHOTS=${15}
+DELTA=${16}
+TMAX=${17}
 
 PROCESS_NUM=`expr $WORKER_NUM + 1`
 echo $PROCESS_NUM
@@ -38,4 +40,6 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --num_candidates $NUM \
   --density $DENSITY \
   --baseline $BASELINE \
-  --n_shots $SHOTS
+  --n_shots $SHOTS \
+  --delta_epochs $DELTA \
+  --T_max $TMAX
