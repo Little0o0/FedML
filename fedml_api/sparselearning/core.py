@@ -227,11 +227,13 @@ class Masking(object):
 
         self.stats.total_nonzero = self.baseline_nonzero
         self.stats.total_zero = self.total_params - self.baseline_nonzero
+        logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
 
 
 
     def generate_mask_only(self, module, lottery_mask_path: "Path" = None):
         self.module = module
+        logging.info(f"Dense FLOPs {self.dense_FLOPs:,}")
         for name, weight in self.module.named_parameters():
             self.mask_dict[name] = torch.zeros_like(
                 weight, dtype=torch.float32, requires_grad=False
