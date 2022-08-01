@@ -139,8 +139,9 @@ def add_args(parser):
 
     parser.add_argument("--SFt", type=int, default=0, help="whether applying sparse fine-tuning")
 
-    parser.add_argument("--init_sparse", type=str, default="noise-erdos-renyi-magnitude-kernel",
+    parser.add_argument("--init_sparse", type=str, default="noise-uniform-magnitude",
     help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
+    # parser.add_argument("--init_sparse", type=str, default="noise-uniform-magnitude",
 
     parser.add_argument("--baseline", type=str, default="none", help="[SNIP|GraSP|SynFlow|iteratively|PruneFL|Mag|Random|none]")
 
