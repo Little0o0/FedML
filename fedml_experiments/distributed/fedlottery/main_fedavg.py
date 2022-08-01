@@ -532,7 +532,7 @@ if __name__ == "__main__":
         elif args.baseline != "none":
             msg = f"{args.baseline}_D{args.density}" + msg
         else:
-            msg = f"ABNS{args.ABNS}_SFt{args.SFt}_D{args.density}" + msg
+            msg = f"ABNS{args.ABNS}_SFt{args.SFt}_D{args.density}_T{args.T_max}_Del{args.delta_epochs}_G{args.grand}_R{args.reverse}" + msg
 
         wandb.init(
             # project="federated_nas",

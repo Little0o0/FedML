@@ -180,7 +180,7 @@ class FedAVGServerManager(ServerManager):
                 if self.args.grand == "entire" and self.round_idx % self.args.delta_epochs == 0 :
                     self.mode = 3
                     self.aggregator.update_num_growth()
-                elif self.args.grand == "block" and self.round_idx % self.args.delta_epochs < 4:
+                elif self.args.grand == "block" and self.round_idx % self.args.delta_epochs < 5:
                     self.mode = 3
                     self.aggregator.update_num_growth()
                 elif self.args.grand == "layer":

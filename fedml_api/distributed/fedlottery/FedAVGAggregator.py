@@ -147,6 +147,7 @@ class FedAVGAggregator(object):
             self.get_mask().step(self.args.epochs)
             candidate_set = dict()
             layer_names = list(self.model_candidate_dict[0].keys())
+            # logging.info(layer_names)
             if self.args.grand == "layer":
                 # window_size = 3
                 if self.args.reverse:
@@ -164,6 +165,14 @@ class FedAVGAggregator(object):
                     candidate_layer_names = list(filter(lambda x : f"conv{idx}_x" in x, layer_names))
                     if idx == 5:
                         candidate_layer_names.append('fc.weight')
+
+                elif self.args.model == "vgg11":
+                    if self.args.reverse:
+                        idx = -(round % 5) + 4
+                    else:
+                        idx = (round % 5)
+                    candidate_layer_names = layer_names[idx*2 : idx*2+2]
+
                 else:
                     raise Exception("TODO yet")
 
