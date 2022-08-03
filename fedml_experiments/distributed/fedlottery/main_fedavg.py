@@ -28,7 +28,7 @@ from fedml_api.data_preprocessing.ImageNet.data_loader import load_partition_dat
 from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_data_landmarks
 from fedml_api.data_preprocessing.Tiny_ImageNet.data_loader import load_partition_data_TinyImageNet_v2
 from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10, load_partition_data_cifar10_v2
-from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
+from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100, load_partition_data_cifar100_v2
 from fedml_api.data_preprocessing.svhn.data_loader import load_partition_data_svhn, load_partition_data_svhn_v2
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10, load_partition_data_cinic10_v2
 
@@ -376,7 +376,7 @@ def load_data(args, dataset_name):
             # data_loader = load_partition_data_cifar10
             data_loader = load_partition_data_cifar10_v2
         elif dataset_name == "cifar100":
-            data_loader = load_partition_data_cifar100
+            data_loader = load_partition_data_cifar100_v2
         elif dataset_name == "cinic10":
             data_loader = load_partition_data_cinic10_v2
         elif dataset_name == "svhn":
