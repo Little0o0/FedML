@@ -383,14 +383,11 @@ class FedAVGAggregator(object):
         end_time = time.time()
         logging.info("aggregate time cost: %d" % (end_time - start_time))
 
-        if mode in [1, 2, 3, 4, 5, 6]:
+        if self.args.feddst == 1:
             model_dict = self.trainer.get_model_mask_dict()
             for name, m in model_dict.items():
                 idx = (m.view(-1) == 1).nonzero(as_tuple=True)
                 self.dense_param[name].data.view(-1)[idx] = averaged_params[name].data.view(-1)[idx]
-        else:
-            logging.info("Error !")
-            self.dense_param = averaged_params
         return averaged_params
     # def aggregate(self, round_id, mode):
     #     start_time = time.time()
