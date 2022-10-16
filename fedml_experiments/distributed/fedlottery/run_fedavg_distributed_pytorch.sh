@@ -19,7 +19,7 @@ DELTA=${16}
 TMAX=${17}
 ADJRATE=${18}
 GRAND=${19}
-REVEARSE=${20}
+DST=${20}
 
 
 PROCESS_NUM=`expr $WORKER_NUM + 1`
@@ -49,4 +49,4 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --T_max $TMAX \
   --adjust_rate $ADJRATE \
   --grand $GRAND \
-  --reverse $REVEARSE
+  --feddst $DST
