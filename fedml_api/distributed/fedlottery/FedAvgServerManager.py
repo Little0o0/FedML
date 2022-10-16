@@ -76,7 +76,7 @@ class FedAVGServerManager(ServerManager):
             for name in mask_dict:
                 mask_dict[name] = mask_dict[name].cpu()
 
-            # torch.save(mask_dict, lottery_path)
+            torch.save(mask_dict, lottery_path)
             self.lottery_paths[idx] = lottery_path
         if self.args.ABNS:
             self.mode = 2
