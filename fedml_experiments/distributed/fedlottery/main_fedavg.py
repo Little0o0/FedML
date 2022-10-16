@@ -161,6 +161,8 @@ def add_args(parser):
 
     parser.add_argument("--delta_epochs", type=int, default=10)
 
+    parser.add_argument("--feddst", type=int, default=1)
+
     args = parser.parse_args()
     return args
 

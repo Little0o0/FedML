@@ -41,6 +41,7 @@ class FedAVGServerManager(ServerManager):
     def pre_train(self, epochs):
         logging.info("Begin pretraining !!!!!")
         self.aggregator.train(epochs = epochs)
+        self.aggregator.dense_param = self.aggregator.get_global_model_params()
 
     def init_prune_model(self, epochs):
         self.aggregator.set_baseline_init_prune_model(epochs)
@@ -75,7 +76,7 @@ class FedAVGServerManager(ServerManager):
             for name in mask_dict:
                 mask_dict[name] = mask_dict[name].cpu()
 
-            torch.save(mask_dict, lottery_path)
+            # torch.save(mask_dict, lottery_path)
             self.lottery_paths[idx] = lottery_path
         if self.args.ABNS:
             self.mode = 2

@@ -40,6 +40,7 @@ class FedAVGAggregator(object):
         self.model_candidate_dict = dict()
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
+        self.dense_param = dict()
 
     def train(self, epochs):
         self.trainer.train(self.train_global, self.device, self.args, epochs=epochs)
@@ -293,8 +294,6 @@ class FedAVGAggregator(object):
         #     self.trainer.model.to(self.device)
         #     self.apply_mask()
 
-
-
         if mode == 3:
             model_mask = self.get_mask()
             model_mask_dict = self.trainer.get_model_mask_dict()
@@ -308,29 +307,59 @@ class FedAVGAggregator(object):
                 if name not in model_mask_dict or name not in candidate_set:
                     continue
                 mask = model_mask_dict[name]
+                num_unpruned_weight = mask.sum().item()
 
                 # prune
-                new_mask = model_mask.prune_func(model_mask, mask, weight, name)
-                removed = num_growth[name]
-                model_mask.stats.total_removed += removed
-                model_mask.stats.removed_dict[name] = removed
+                if self.args.feddst == 0:
+                    new_mask = model_mask.prune_func(model_mask, mask, weight, name)
+                    removed = num_growth[name]
+                    model_mask.stats.total_removed += removed
+                    model_mask.stats.removed_dict[name] = removed
 
-                # # growth from candidate
-                # if self.args.SFt and self.args.ABNS:
-                #     removed = int(1.2 * removed)
+                    # # growth from candidate
+                    # if self.args.SFt and self.args.ABNS:
+                    #     removed = int(1.2 * removed)
 
-                regrowth = sorted(candidate_set[name].items(), key=lambda x:torch.abs(x[1]), reverse=True)[:removed]
-                regrowth_index = [x[0] for x in regrowth]
+                    regrowth = sorted(candidate_set[name].items(), key=lambda x:torch.abs(x[1]), reverse=True)[:removed]
+                    regrowth_index = [x[0] for x in regrowth]
 
-                new_mask.data.view(-1)[regrowth_index] = 1.0
-                weight.data.view(-1)[regrowth_index] = 0.0
-                new_nonzero = new_mask.sum().item()
-                model_mask_dict.pop(name)
-                model_mask_dict[name] = new_mask.float()
-                total_nonzero_new += new_nonzero
+                    new_mask.data.view(-1)[regrowth_index] = 1.0
+                    weight.data.view(-1)[regrowth_index] = 0.0
+                    new_nonzero = new_mask.sum().item()
+                    model_mask_dict.pop(name)
+                    model_mask_dict[name] = new_mask.float()
+                    total_nonzero_new += new_nonzero
 
-            self.trainer.set_model_mask_dict(model_mask_dict)
-            self.apply_mask()
+                else:
+                    # combine all mask
+                    # prune
+                    new_mask = model_mask.prune_func(model_mask, mask, weight, name)
+                    removed = num_growth[name]
+                    model_mask.stats.total_removed += removed
+                    model_mask.stats.removed_dict[name] = removed
+
+                    # growth
+                    regrowth_index = [x[0] for x in candidate_set[name].items()]
+                    new_mask.data.view(-1)[regrowth_index] = 1.0
+                    weight.data.view(-1)[regrowth_index] = self.dense_param[name][regrowth_index]
+
+                    # prune
+                    num_prune = len(regrowth_index) - removed
+                    if num_prune <= 0 :
+                        logging.info("num prune error !!!!")
+                    else:
+                        x, idx = torch.sort(torch.abs(weight.data.view(-1)))
+                        weight.data.view(-1)[idx[:-num_unpruned_weight]] = 0.0
+                        new_mask.data.view(-1)[idx[:-num_unpruned_weight]] = 0.0
+
+                    new_nonzero = new_mask.sum().item()
+                    model_mask_dict.pop(name)
+                    model_mask_dict[name] = new_mask.float()
+                    total_nonzero_new += new_nonzero
+
+                self.trainer.set_model_mask_dict(model_mask_dict)
+                self.apply_mask()
+
 
             # model_mask.reset_momentum()
             # model_mask.apply_mask_gradients()
@@ -351,9 +380,17 @@ class FedAVGAggregator(object):
 
             model_mask.gather_statistics()
 
-
         end_time = time.time()
         logging.info("aggregate time cost: %d" % (end_time - start_time))
+
+        if mode in [1, 2, 3, 4, 5, 6]:
+            model_dict = self.trainer.get_model_mask_dict()
+            for name, m in model_dict.items():
+                idx = (m.view(-1) == 1).nonzero(as_tuple=True)
+                self.dense_param[name].data.view(-1)[idx] = averaged_params[name].data.view(-1)[idx]
+        else:
+            logging.info("Error !")
+            self.dense_param = averaged_params
         return averaged_params
     # def aggregate(self, round_id, mode):
     #     start_time = time.time()

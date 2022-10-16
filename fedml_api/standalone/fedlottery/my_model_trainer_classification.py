@@ -27,6 +27,7 @@ class MyModelTrainer(ModelTrainer):
 
 
 
+
     def set_model_mask(self, mask):
         self.mask = mask
         self.mask_dict = self.mask.mask_dict
