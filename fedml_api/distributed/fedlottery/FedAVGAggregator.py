@@ -307,7 +307,7 @@ class FedAVGAggregator(object):
                 if name not in model_mask_dict or name not in candidate_set:
                     continue
                 mask = model_mask_dict[name]
-                num_unpruned_weight = mask.sum().item()
+                num_unpruned_weight = int(mask.sum().item())
 
                 # prune
                 if self.args.feddst == 0:
@@ -341,8 +341,8 @@ class FedAVGAggregator(object):
                     # growth
                     regrowth_index = [x[0] for x in candidate_set[name].items()]
                     new_mask.data.view(-1)[regrowth_index] = 1.0
-                    weight.data.view(-1)[regrowth_index] = self.dense_param[name][regrowth_index]
-
+                    tmp_tensor = self.dense_param[name]
+                    weight.data.view(-1)[regrowth_index] = tmp_tensor.view(-1)[regrowth_index].to(self.device)
                     # prune
                     num_prune = len(regrowth_index) - removed
                     if num_prune <= 0 :
