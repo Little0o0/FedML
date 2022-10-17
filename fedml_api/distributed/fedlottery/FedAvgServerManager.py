@@ -198,7 +198,7 @@ class FedAVGServerManager(ServerManager):
 
             elif self.mode == 0 and self.args.baseline == "PruneFL" \
                     and self.round_idx <= self.args.T_max \
-                    and self.round_idx % self.args.delta_epochs == 0 :
+                    and self.round_idx % self.args.delta_epochs == 0:
                 self.mode = 7
             elif self.mode == 7:
                 global_model_params = self.aggregator.trainer.get_model_params(noMask=False)

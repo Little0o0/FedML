@@ -340,17 +340,18 @@ class FedAVGAggregator(object):
 
                     # growth
                     regrowth_index = [x[0] for x in candidate_set[name].items()]
+                    regrowth_index = random.sample(regrowth_index, removed)
                     new_mask.data.view(-1)[regrowth_index] = 1.0
-                    tmp_tensor = self.dense_param[name]
-                    weight.data.view(-1)[regrowth_index] = tmp_tensor.view(-1)[regrowth_index].to(self.device)
-                    # prune
-                    num_prune = len(regrowth_index) - removed
-                    if num_prune <= 0 :
-                        logging.info("num prune error !!!!")
-                    else:
-                        x, idx = torch.sort(torch.abs(weight.data.view(-1)))
-                        weight.data.view(-1)[idx[:-num_unpruned_weight]] = 0.0
-                        new_mask.data.view(-1)[idx[:-num_unpruned_weight]] = 0.0
+                    # tmp_tensor = self.dense_param[name]
+                    weight.data.view(-1)[regrowth_index] = 0
+                    # # prune
+                    # num_prune = len(regrowth_index) - removed
+                    # if num_prune <= 0 :
+                    #     logging.info("num prune error !!!!")
+                    # else:
+                    #     x, idx = torch.sort(torch.abs(weight.data.view(-1)))
+                    #     weight.data.view(-1)[idx[:-num_unpruned_weight]] = 0.0
+                    #     new_mask.data.view(-1)[idx[:-num_unpruned_weight]] = 0.0
 
                     new_nonzero = new_mask.sum().item()
                     model_mask_dict.pop(name)
@@ -383,11 +384,11 @@ class FedAVGAggregator(object):
         end_time = time.time()
         logging.info("aggregate time cost: %d" % (end_time - start_time))
 
-        if self.args.feddst == 1:
-            model_dict = self.trainer.get_model_mask_dict()
-            for name, m in model_dict.items():
-                idx = (m.view(-1) == 1).nonzero(as_tuple=True)
-                self.dense_param[name].data.view(-1)[idx] = averaged_params[name].data.view(-1)[idx]
+        # if self.args.feddst == 1:
+        #     model_dict = self.trainer.get_model_mask_dict()
+        #     for name, m in model_dict.items():
+        #         idx = (m.view(-1) == 1).nonzero(as_tuple=True)
+        #         self.dense_param[name].data.view(-1)[idx] = averaged_params[name].data.view(-1)[idx]
         return averaged_params
     # def aggregate(self, round_id, mode):
     #     start_time = time.time()
