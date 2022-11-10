@@ -446,6 +446,10 @@ def create_model(args, model_name, output_dim):
         from fedml_api.model.cv.cnn import CNN
         model = CNN(output_dim)
 
+    elif model_name == "cnn_small":
+        from fedml_api.model.cv.cnn import CNN_small
+        model = CNN_small(output_dim)
+
     elif model_name == "resnet18":
         if args.baseline == "none":
             from fedml_api.model.cv.fedlottery_model.resnet import resnet18
