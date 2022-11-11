@@ -71,6 +71,35 @@ class CNN_OriginalFedAvg(torch.nn.Module):
         return x
 
 
+class CNN_tiny(torch.nn.Module):
+    def __init__(self, output_dim):
+        super(CNN_tiny, self).__init__()
+        self.conv2d_1 = torch.nn.Conv2d(3, 8, kernel_size=3)
+        self.max_pooling_1 = nn.MaxPool2d(2, stride=2)
+        self.conv2d_2 = torch.nn.Conv2d(8, 16, kernel_size=3)
+        self.max_pooling_2 = nn.MaxPool2d(2, stride=2)
+        self.conv2d_3 = torch.nn.Conv2d(16, 16, kernel_size=3)
+        self.fc1 = nn.Linear(16 * 4 * 4, 128)
+        self.fc2 = nn.Linear(128, output_dim)
+        self.relu = nn.ReLU()
+        self.flatten = nn.Flatten()
+    def forward(self, x):
+        # x = torch.unsqueeze(x, 1)
+        x = self.conv2d_1(x)
+        x = self.relu(x)
+        x = self.max_pooling_1(x)
+        x = self.conv2d_2(x)
+        x = self.relu(x)
+        x = self.max_pooling_2(x)
+        x = self.conv2d_3(x)
+        x = self.relu(x)
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        # x = self.softmax(self.linear_2(x))
+        return x
+
 
 class CNN_small(torch.nn.Module):
     def __init__(self, output_dim):
