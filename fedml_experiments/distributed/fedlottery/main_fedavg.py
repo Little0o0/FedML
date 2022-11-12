@@ -450,6 +450,10 @@ def create_model(args, model_name, output_dim):
         from fedml_api.model.cv.cnn import CNN_small
         model = CNN_small(output_dim)
 
+    elif model_name == "cnn_ultra":
+        from fedml_api.model.cv.cnn import CNN_ultra
+        model = CNN_ultra(output_dim)
+
     elif model_name == "cnn_tiny":
         from fedml_api.model.cv.cnn import CNN_tiny
         model = CNN_tiny(output_dim)
