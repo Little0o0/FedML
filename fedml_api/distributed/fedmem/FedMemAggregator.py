@@ -89,7 +89,7 @@ class FedMemAggregator(object):
         model_mask_dict = self.trainer.get_model_mask_dict()
         model_mask.gather_statistics()
         model_mask.adjust_prune_rate()
-        total_nonzero_new = 0
+        # total_nonzero_new = 0
         num_growth = self.trainer.get_num_growth()
         for name, weight in model_mask.module.named_parameters():
             if name not in model_mask_dict or name not in candidate_set:
@@ -112,27 +112,30 @@ class FedMemAggregator(object):
 
             mask.data.view(-1)[regrowth_index] = 1.0
             weight.data.view(-1)[regrowth_index] = 0.0
-            new_nonzero = mask.sum().item()
-            total_nonzero_new += new_nonzero
+
+            model_mask_dict.pop(name)
+            model_mask_dict[name] = mask.float()
+            # new_nonzero = mask.sum().item()
+            # total_nonzero_new += new_nonzero
 
         self.trainer.set_model_mask_dict(model_mask_dict)
         self.trainer.mask.apply_mask()
 
-        model_mask.adjustments.append(
-            model_mask.baseline_nonzero - total_nonzero_new
-        )  # will be zero if deterministic
-        model_mask.adjusted_growth = (
-                0.25 * model_mask.adjusted_growth
-                + (0.75 * model_mask.adjustments[-1])
-                + np.mean(model_mask.adjustments)
-        )
-        if model_mask.stats.total_nonzero > 0:
-            logging.debug(
-                f"Nonzero before/after: {model_mask.stats.total_nonzero}/{total_nonzero_new}. "
-                f"Growth adjustment: {model_mask.adjusted_growth:.2f}."
-            )
-
-        model_mask.gather_statistics()
+        # model_mask.adjustments.append(
+        #     model_mask.baseline_nonzero - total_nonzero_new
+        # )  # will be zero if deterministic
+        # model_mask.adjusted_growth = (
+        #         0.25 * model_mask.adjusted_growth
+        #         + (0.75 * model_mask.adjustments[-1])
+        #         + np.mean(model_mask.adjustments)
+        # )
+        # if model_mask.stats.total_nonzero > 0:
+        #     logging.debug(
+        #         f"Nonzero before/after: {model_mask.stats.total_nonzero}/{total_nonzero_new}. "
+        #         f"Growth adjustment: {model_mask.adjusted_growth:.2f}."
+        #     )
+        #
+        # model_mask.gather_statistics()
 
     def prune(self,):
         model_mask = self.trainer.mask
@@ -277,8 +280,8 @@ class FedMemAggregator(object):
             if len(self.trainer.penalty_index) > 0:
                 logging.info(f"penalty sum is {self.trainer.calculate_penalty()}")
 
-            # if round % self.args.delta_epochs == self.args.transfer_epochs:
-            #     self.prune()
+            if round % self.args.delta_epochs == self.args.transfer_epochs:
+                self.prune()
 
             if round % self.args.delta_epochs > self.args.transfer_epochs:
                 assert Exception("Bug here !")
