@@ -4,7 +4,7 @@ from .FedProxAggregator import FedProxAggregator
 from .FedProxClientManager import FedProxClientManager
 from .FedProxServerManager import FedProxServerManager
 from .FedProxTrainer import FedProxTrainer
-from ...standalone.fedavg.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
+from fedml_api.standalone.fedmem.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
 from ...standalone.fedavg.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
 from ...standalone.fedavg.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
 

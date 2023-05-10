@@ -1,9 +1,9 @@
 from mpi4py import MPI
 
-from .FedAVGAggregator import FedAVGAggregator
-from .FedAVGTrainer import FedAVGTrainer
-from .FedAvgClientManager import FedAVGClientManager
-from .FedAvgServerManager import FedAVGServerManager
+from .FedMemAggregator import FedMemAggregator
+from .FedMemTrainer import FedMemTrainer
+from .FedMemClientManager import FedMemClientManager
+from .FedMemServerManager import FedMemServerManager
 
 from fedml_api.standalone.fedmem.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
 from ...standalone.fedmem.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
@@ -93,7 +93,7 @@ def init_server(
 
     # aggregator
     worker_num = size - 1
-    aggregator = FedAVGAggregator(
+    aggregator = FedMemAggregator(
         train_data_global,
         test_data_global,
         train_data_num,
@@ -109,9 +109,9 @@ def init_server(
     # start the distributed training
     backend = args.backend
     if preprocessed_sampling_lists is None:
-        server_manager = FedAVGServerManager(args, aggregator, comm, rank, size, backend)
+        server_manager = FedMemServerManager(args, aggregator, comm, rank, size, backend)
     else:
-        server_manager = FedAVGServerManager(
+        server_manager = FedMemServerManager(
             args,
             aggregator,
             comm,
@@ -121,6 +121,10 @@ def init_server(
             is_preprocessed=True,
             preprocessed_client_lists=preprocessed_sampling_lists,
         )
+    # if args.pruning and args.pruning != "None":
+    #     server_manager.init_prune()
+    if args.pruning and args.pruning != "None":
+        server_manager.coarse_prune()
     server_manager.send_init_msg()
     server_manager.run()
 
@@ -148,7 +152,7 @@ def init_client(
             model_trainer = MyModelTrainerCLS(model)
     model_trainer.set_id(client_index)
     backend = args.backend
-    trainer = FedAVGTrainer(
+    trainer = FedMemTrainer(
         client_index,
         train_data_local_dict,
         train_data_local_num_dict,
@@ -158,5 +162,5 @@ def init_client(
         args,
         model_trainer,
     )
-    client_manager = FedAVGClientManager(args, trainer, comm, process_id, size, backend)
+    client_manager = FedMemClientManager(args, trainer, comm, process_id, size, backend)
     client_manager.run()

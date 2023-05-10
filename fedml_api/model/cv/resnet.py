@@ -13,7 +13,7 @@ import logging
 import torch
 import torch.nn as nn
 
-__all__ = ['ResNet', 'resnet110']
+__all__ = ['ResNet', 'resnet18', 'resnet34',  'resnet56', 'resnet110']
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -198,6 +198,17 @@ class ResNet(nn.Module):
         else:
             return x
 
+def resnet18(class_num=10, **kwargs):
+    """
+    return a ResNet-18 model
+    """
+    return ResNet(BasicBlock, [2, 2, 2, 2], class_num, **kwargs)
+
+def resnet34(class_num=10, **kwargs):
+    """
+    return a ResNet-34 model
+    """
+    return ResNet(BasicBlock, [3, 4, 6, 3], class_num,  **kwargs)
 
 def resnet56(class_num, pretrained=False, path=None, **kwargs):
     """

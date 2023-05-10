@@ -1,3 +1,5 @@
+import torch
+from torch import nn
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
@@ -10,7 +12,7 @@ class MyModelTrainer(ModelTrainer):
         return self.model.cpu().state_dict()
 
     def set_model_params(self, model_parameters):
-        self.model.load_state_dict(model_parameters, strict=False)
+        self.model.load_state_dict(model_parameters)
 
     def train(self, train_data, device, args):
         model = self.model
@@ -19,7 +21,7 @@ class MyModelTrainer(ModelTrainer):
         model.train()
 
         # train and update
-        criterion = nn.CrossEntropyLoss().to(device)
+        criterion = nn.BCELoss(reduction='sum').to(device)
         if args.client_optimizer == "sgd":
             optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
         else:
@@ -31,22 +33,24 @@ class MyModelTrainer(ModelTrainer):
             batch_loss = []
             for batch_idx, (x, labels) in enumerate(train_data):
                 x, labels = x.to(device), labels.to(device)
+                # logging.info("x.size = " + str(x.size()))
+                # logging.info("labels.size = " + str(labels.size()))
                 model.zero_grad()
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
                 loss.backward()
 
-                # Uncommet this following line to avoid nan loss
-                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                # to avoid nan loss
+                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.5)
 
                 optimizer.step()
                 # logging.info('Update Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                #     epoch, (batch_idx + 1) * args.batch_size, len(train_data) * args.batch_size,
-                #            100. * (batch_idx + 1) / len(train_data), loss.item()))
+                #     epoch, (batch_idx + 1) * self.args.batch_size, len(self.local_training_data) * self.args.batch_size,
+                #            100. * (batch_idx + 1) / len(self.local_training_data), loss.item()))
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
-            logging.info('Client Index = {}\tEpoch: {}\tLoss: {:.6f}'.format(
-                self.id, epoch, sum(epoch_loss) / len(epoch_loss)))
+            # logging.info('Client Index = {}\tEpoch: {}\tLoss: {:.6f}'.format(
+            #     self.client_idx, epoch, sum(epoch_loss) / len(epoch_loss)))
 
     def test(self, test_data, device, args):
         model = self.model
@@ -57,10 +61,18 @@ class MyModelTrainer(ModelTrainer):
         metrics = {
             'test_correct': 0,
             'test_loss': 0,
+            'test_precision': 0,
+            'test_recall': 0,
             'test_total': 0
         }
 
-        criterion = nn.CrossEntropyLoss().to(device)
+        '''
+        stackoverflow_lr is the task of multi-label classification
+        please refer to following links for detailed explainations on cross-entropy and corresponding implementation of tff research:
+        https://towardsdatascience.com/cross-entropy-for-classification-d98e7f974451
+        https://github.com/google-research/federated/blob/49a43456aa5eaee3e1749855eed89c0087983541/optimization/stackoverflow_lr/federated_stackoverflow_lr.py#L131
+        '''
+        criterion = nn.BCELoss(reduction='sum').to(device)
 
         with torch.no_grad():
             for batch_idx, (x, target) in enumerate(test_data):
@@ -69,12 +81,17 @@ class MyModelTrainer(ModelTrainer):
                 pred = model(x)
                 loss = criterion(pred, target)
 
-                _, predicted = torch.max(pred, -1)
-                correct = predicted.eq(target).sum()
-
+                predicted = (pred > .5).int()
+                correct = predicted.eq(target).sum(axis=-1).eq(target.size(1)).sum()
+                true_positive = ((target * predicted) > .1).int().sum(axis=-1)
+                precision = true_positive / (predicted.sum(axis=-1) + 1e-13)
+                recall = true_positive / (target.sum(axis=-1) + 1e-13)
+                metrics['test_precision'] += precision.sum().item()
+                metrics['test_recall'] += recall.sum().item()
                 metrics['test_correct'] += correct.item()
                 metrics['test_loss'] += loss.item() * target.size(0)
                 metrics['test_total'] += target.size(0)
+
         return metrics
 
     def test_on_the_server(self, train_data_local_dict, test_data_local_dict, device, args=None) -> bool:

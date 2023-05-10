@@ -4,7 +4,7 @@ from .FedAVGTrainer import FedAVGTrainer
 import torch
 import time
 
-from ...standalone.fedavg.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
+from fedml_api.standalone.fedmem.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
 from ...standalone.fedavg.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
 from ...standalone.fedavg.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
 from .process_group_manager import ProcessGroupManager
