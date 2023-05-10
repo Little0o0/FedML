@@ -100,9 +100,9 @@ def add_args(parser):
 
     parser.add_argument("--gpu_num_per_server", type=int, default=4, help="gpu_num_per_server")
 
-    parser.add_argument("--delta_epochs", type=int, default=10)
+    parser.add_argument("--delta_epochs", type=int, default=20)
 
-    parser.add_argument("--transfer_epochs", type=int, default=5)
+    parser.add_argument("--transfer_epochs", type=int, default=10)
 
     parser.add_argument("--dropit", type=int, default=0)
 

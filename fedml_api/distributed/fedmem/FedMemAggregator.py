@@ -277,8 +277,8 @@ class FedMemAggregator(object):
             if len(self.trainer.penalty_index) > 0:
                 logging.info(f"penalty sum is {self.trainer.calculate_penalty()}")
 
-            if round % self.args.delta_epochs == self.args.transfer_epochs:
-                self.prune()
+            # if round % self.args.delta_epochs == self.args.transfer_epochs:
+            #     self.prune()
 
             if round % self.args.delta_epochs > self.args.transfer_epochs:
                 assert Exception("Bug here !")
