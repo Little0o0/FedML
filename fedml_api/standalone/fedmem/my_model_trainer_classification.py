@@ -21,6 +21,7 @@ class MyModelTrainer(ModelTrainer):
         self.candidate_set = dict()
         self.num_growth = dict()
         self.penalty_index = dict()
+        self.optimizer_state_dict = dict()
 
     def get_num_growth(self):
         return self.num_growth
@@ -136,6 +137,8 @@ class MyModelTrainer(ModelTrainer):
         else:
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
+        if len(self.optimizer_state_dict) != 0:
+            optimizer.load_state_dict(self.optimizer_state_dict)
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer
@@ -165,6 +168,8 @@ class MyModelTrainer(ModelTrainer):
                         and (batch_idx + 1) == len(train_data)):
                     assert len(self.num_growth) != 0
                     self.candidate_set = self.get_top_k_grad(self.num_growth)
+
+        self.optimizer_state_dict = optimizer.state_dict()
 
     def test(self, test_data, device, args):
         model = self.model
