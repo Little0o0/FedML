@@ -33,7 +33,6 @@ from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data
 
 from fedml_api.model.cv.cnn import CNN_DropOut
 from fedml_api.model.cv.mobilenet import mobilenet
-from fedml_api.model.cv.resnet import resnet18, resnet56
 from fedml_api.model.nlp.rnn import RNN_OriginalFedAvg, RNN_StackOverFlow
 from fedml_api.model.linear.lr import LogisticRegression
 from fedml_api.model.cv.mobilenet_v3 import MobileNetV3
@@ -113,6 +112,7 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-magnitude",
                         help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
     #
+    parser.add_argument("--NoBN", type=int, default=0)
 
     parser.add_argument("--T_max", type=int, default=300)
 
@@ -369,6 +369,12 @@ def load_data(args, dataset_name):
 
 
 def create_model(args, model_name, output_dim):
+
+    if args.NoBN:
+        from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
+    else:
+        from fedml_api.model.cv.resnet import resnet18, resnet56
+
     logging.info("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
     model = None
     if model_name == "lr" and args.dataset == "mnist":
