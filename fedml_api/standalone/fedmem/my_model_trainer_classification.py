@@ -74,7 +74,7 @@ class MyModelTrainer(ModelTrainer):
 
     def init_mask(self, args, mask_dict=None):
         # return mask_dict
-        if args.pruning in ["FedTiny", "FedDST", "FedMem"]:
+        if args.pruning in ["FedTiny", "FedDST", "FedMem", "Mag"]:
             if self.mask is None:
                 optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
                 self.mask = Masking(
@@ -94,7 +94,7 @@ class MyModelTrainer(ModelTrainer):
                 self.mask_dict = mask_dict
                 self.mask.attach_model_with_mask_dict(self.model, mask_dict)
         else:
-            raise Exception("Support FedTiny, FedDST, FedMem Only!!!")
+            raise Exception("Support FedTiny, FedDST, FedMem, Mag Only!!!")
 
     # def init_prune_loop(self, args, device, train_data):
     #     density = args.density
