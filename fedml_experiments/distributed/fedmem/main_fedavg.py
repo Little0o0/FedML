@@ -79,7 +79,7 @@ def add_args(parser):
 
     parser.add_argument("--backend", type=str, default="MPI", help="Backend for Server and Client")
 
-    parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem]")
+    parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|Mag]")
 
     parser.add_argument("--lr", type=float, default=0.001, metavar="LR", help="learning rate (default: 0.001)")
 
