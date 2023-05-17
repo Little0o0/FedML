@@ -472,6 +472,30 @@ class Masking(object):
         """
         return get_inference_FLOPs(self, torch.rand(*self.input_size))
 
+    def calculate_density(self):
+        total_size = 0
+        for name, module in self.module.named_modules():
+            if hasattr(module, "weight"):
+                total_size += module.weight.numel()
+            if getattr(module, "bias", None) is not None:
+                total_size += module.bias.numel()
+        logging.info(f"Total Model parameters: {total_size}.")
+        total_params = total_size
+
+        total_size = 0
+        for name, weight in self.mask_dict.items():
+            total_size += weight.numel()
+
+        baseline_nonzero = total_size
+        total_zero = total_params - baseline_nonzero
+        logging.info(f"Total parameters after removed layers: {total_size}.")
+        logging.info(
+            f"Total parameters under sparsity level of {self.density}: {baseline_nonzero}"
+        )
+        logging.info(
+            f"Achieved sparsity at init (w/o BN, bias): {baseline_nonzero / total_params:.4f}"
+        )
+
     @torch.no_grad()
     def init(self, lottery_mask_path: "Path"):
         """
@@ -496,11 +520,13 @@ class Masking(object):
                 total_size += module.bias.numel()
         logging.info(f"Total Model parameters: {total_size}.")
 
+        self.stats.total_params = total_size
+
         total_size = 0
         for name, weight in self.mask_dict.items():
             total_size += weight.numel()
 
-        self.stats.total_nonzero = self.baseline_nonzero
+        self.stats.total_zero = total_size
         self.stats.total_zero = self.total_params - self.baseline_nonzero
         logging.info(f"Total parameters after removed layers: {total_size}.")
         logging.info(

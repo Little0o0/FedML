@@ -96,17 +96,18 @@ class FedMemAggregator(object):
                 continue
             mask = model_mask_dict[name]
             removed = num_growth[name]
-            # # growth from candidate
-            # if self.args.SFt and self.args.ABNS:
-            #     removed = int(1.2 * removed)
 
-            num_zeros = model_mask.stats.zeros_dict[name]
+            num_zeros = (mask.numel() - mask.sum()).cpu().item()
             k = num_zeros + removed
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
-            _, old_idx = torch.sort(torch.abs(mask.cpu().flatten()))
-            self.trainer.penalty_index[name] = torch.tensor(list(set(new_idx[:k]) - set(old_idx[:num_zeros])))
+            _, old_idx = torch.sort(mask.cpu().flatten())
+            logging.info("new_idx", new_idx, "old_idx", old_idx)
 
+            logging.info(f"{name} will remove {removed}, that means the total number is same num_zeros ")
+            self.trainer.penalty_index[name] = \
+                torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
 
+            logging.info(f"layer {name} regrow {removed}, density increase {removed/weight.numel()}")
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
 
@@ -120,6 +121,9 @@ class FedMemAggregator(object):
 
         self.trainer.set_model_mask_dict(model_mask_dict)
         self.trainer.mask.apply_mask()
+
+        logging.info("############## After Growing ##########")
+        model_mask.calculate_density()
 
         # model_mask.adjustments.append(
         #     model_mask.baseline_nonzero - total_nonzero_new
@@ -172,6 +176,8 @@ class FedMemAggregator(object):
             )
 
         model_mask.gather_statistics()
+        logging.info("############## After Pruning ##########")
+        model_mask.calculate_density()
 
     def prune_and_grow(self, round, training_num):
         for idx in self.model_candidate_dict:
@@ -280,8 +286,8 @@ class FedMemAggregator(object):
             if len(self.trainer.penalty_index) > 0:
                 logging.info(f"penalty sum is {self.trainer.calculate_penalty()}")
 
-            if round % self.args.delta_epochs == self.args.transfer_epochs:
-                self.prune()
+            # if round % self.args.delta_epochs == self.args.transfer_epochs:
+            #     self.prune()
 
             if round % self.args.delta_epochs > self.args.transfer_epochs:
                 assert Exception("Bug here !")

@@ -28,6 +28,7 @@ class FedMemServerManager(ServerManager):
         self.is_preprocessed = is_preprocessed
         self.preprocessed_client_lists = preprocessed_client_lists
         self.mode = 0
+        self.OPT = None
         # mode 0, server aggregate dense model, send aggregated dense model
         # mode 1, server aggregate sparse model, send sparse model
         # mode 2, server  mask aggregate sparse model, update mask, send sparse model and mask
@@ -67,6 +68,7 @@ class FedMemServerManager(ServerManager):
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         local_sample_number = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_SAMPLES)
         candidate_set = msg_params.get(MyMessage.MSG_ARG_KEY_CANDIDATE_SET)
+        self.OPT = msg_params.get(MyMessage.MSG_ARG_KEY_OPT)
         self.aggregator.add_local_trained_result(sender_id - 1, model_params, local_sample_number, candidate_set)
         b_all_received = self.aggregator.check_whether_all_receive()
         logging.info("b_all_received = " + str(b_all_received))
@@ -77,7 +79,7 @@ class FedMemServerManager(ServerManager):
 
             if self.mode == 1 and self.round_idx <= self.args.T_max \
                 and self.round_idx != 0 \
-                and self.round_idx % self.args.delta_epochs == 0:
+                and self.round_idx % self.args.delta_epochs == 1:
                 if self.args.pruning in ["FedTiny", "FedMem"]:
                     self.mode = 2
                     self.aggregator.trainer.update_num_growth()
@@ -147,4 +149,5 @@ class FedMemServerManager(ServerManager):
         message.add_params(MyMessage.MSG_ARG_KEY_MASK_DICT, mask_dict)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_GROWTH, num_growth)
         message.add_params(MyMessage.MSG_ARG_KEY_PENALTY_IDX, penalty_index)
+        message.add_params(MyMessage.MSG_ARG_KEY_OPT, self.OPT)
         self.send_message(message)

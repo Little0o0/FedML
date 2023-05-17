@@ -26,6 +26,7 @@ class MyMessage(object):
     MSG_ARG_KEY_NUM_GROWTH = "num_growth"
     MSG_ARG_KEY_CANDIDATE_SET = "model_candidate_set"
     MSG_ARG_KEY_PENALTY_IDX = "penalty_index"
+    MSG_ARG_KEY_OPT = "OPT and Sch Pair"
 
     MSG_ARG_KEY_TRAIN_CORRECT = "train_correct"
     MSG_ARG_KEY_TRAIN_ERROR = "train_error"

@@ -99,9 +99,9 @@ def add_args(parser):
 
     parser.add_argument("--gpu_num_per_server", type=int, default=4, help="gpu_num_per_server")
 
-    parser.add_argument("--delta_epochs", type=int, default=20)
+    parser.add_argument("--delta_epochs", type=int, default=10)
 
-    parser.add_argument("--transfer_epochs", type=int, default=10)
+    parser.add_argument("--transfer_epochs", type=int, default=5)
 
     parser.add_argument("--dropit", type=int, default=0)
 
@@ -112,7 +112,19 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-magnitude",
                         help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
     #
-    parser.add_argument("--NoBN", type=int, default=0)
+    parser.add_argument("--NoBN", type=int, default=1)
+
+    parser.add_argument("--lam", type=float, default=0.01,
+            help="lambda control the self-transfer learning")
+
+    parser.add_argument("--p", type=float, default=1.0,
+            help="penalty value for self-transfer learning")
+
+    parser.add_argument("--forgetting_set", type=int, default=0,
+            help="whether create forgetting set")
+
+    parser.add_argument("--budget_training", type=int, default=0,
+            help="whether activate budget training")
 
     parser.add_argument("--T_max", type=int, default=300)
 

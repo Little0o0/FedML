@@ -63,6 +63,9 @@ class FedMemClientManager(ClientManager):
         mask_dict = msg_params.get(MyMessage.MSG_ARG_KEY_MASK_DICT)
         num_growth = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_GROWTH)
         penalty_index = msg_params.get(MyMessage.MSG_ARG_KEY_PENALTY_IDX)
+        self.trainer.trainer.optimizer_state_dict, \
+            self.trainer.trainer.lr_scheduler_state_dict = \
+                msg_params.get(MyMessage.MSG_ARG_KEY_OPT)
 
         if self.args.is_mobile == 1:
             model_params = transform_list_to_tensor(model_params)
@@ -91,6 +94,8 @@ class FedMemClientManager(ClientManager):
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         message.add_params(MyMessage.MSG_ARG_KEY_CANDIDATE_SET, candidate_set)
+        OPT = (self.trainer.trainer.optimizer_state_dict, self.trainer.trainer.lr_scheduler_state_dict)
+        message.add_params(MyMessage.MSG_ARG_KEY_OPT, OPT)
         self.send_message(message)
 
     def __train(self):

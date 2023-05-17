@@ -74,6 +74,7 @@ class DropITer(object):
     @staticmethod
     def transfer(model, strategy, gamma, autocast):
         _type = type(model)
+        # this part need to be verified, what happens if model is resnet
         if _type in supports and not hasattr(model, 'no_dropit'):
             dropiter = DropITer(strategy, gamma)
             dropiter.autocast = autocast  # just for recording
