@@ -103,7 +103,8 @@ class FedMemAggregator(object):
             _, old_idx = torch.sort(mask.cpu().flatten())
             self.trainer.penalty_index[name] = \
                     torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
-            # logging.info(f"layer {name} regrow {removed}, density increase {removed/weight.numel()}")
+
+            logging.info(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned ")
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
 
@@ -114,6 +115,7 @@ class FedMemAggregator(object):
             model_mask_dict[name] = mask.float()
             # new_nonzero = mask.sum().item()
             # total_nonzero_new += new_nonzero
+            logging.info(f"layer {name} regrow {removed}, density increase {removed / weight.numel()}")
 
         self.trainer.set_model_mask_dict(model_mask_dict)
         self.trainer.mask.apply_mask()
@@ -282,8 +284,8 @@ class FedMemAggregator(object):
             if len(self.trainer.penalty_index) > 0:
                 logging.info(f"penalty sum is {self.trainer.calculate_penalty()}")
 
-            # if round % self.args.delta_epochs == self.args.transfer_epochs:
-            #     self.prune()
+            if round % self.args.delta_epochs == self.args.transfer_epochs:
+                self.prune()
 
             if round % self.args.delta_epochs > self.args.transfer_epochs:
                 assert Exception("Bug here !")
