@@ -97,17 +97,13 @@ class FedMemAggregator(object):
             mask = model_mask_dict[name]
             removed = num_growth[name]
 
-            num_zeros = (mask.numel() - mask.sum()).cpu().item()
+            num_zeros = int((mask.numel() - mask.sum()).cpu().item())
             k = num_zeros + removed
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
             _, old_idx = torch.sort(mask.cpu().flatten())
-            logging.info("new_idx", new_idx, "old_idx", old_idx)
-
-            logging.info(f"{name} will remove {removed}, that means the total number is same num_zeros ")
             self.trainer.penalty_index[name] = \
-                torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
-
-            logging.info(f"layer {name} regrow {removed}, density increase {removed/weight.numel()}")
+                    torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+            # logging.info(f"layer {name} regrow {removed}, density increase {removed/weight.numel()}")
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
 
