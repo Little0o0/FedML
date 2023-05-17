@@ -188,12 +188,12 @@ class MyModelTrainer(ModelTrainer):
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
 
-                # if mode == 4:
-                #     for name, weight in self.model.named_parameters():
-                #         if name not in self.penalty_index:
-                #             continue
-                #         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
-                #         loss += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                if mode == 4:
+                    for name, weight in self.model.named_parameters():
+                        if name not in self.penalty_index:
+                            continue
+                        # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
+                        loss += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
 
                 loss.backward()
 

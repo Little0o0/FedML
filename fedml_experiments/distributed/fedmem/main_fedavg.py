@@ -114,7 +114,7 @@ def add_args(parser):
     #
     parser.add_argument("--NoBN", type=int, default=1)
 
-    parser.add_argument("--lam", type=float, default=0.01,
+    parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
 
     parser.add_argument("--p", type=float, default=2.0,
