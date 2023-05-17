@@ -100,18 +100,31 @@ class MyModelTrainer(ModelTrainer):
     #     density = args.density
     #     pass
 
-    def get_top_k_grad(self, data_sample, device, k_dict, model):
+    def get_top_k_grad(self, train_data, device, k_dict, model, args):
+
         model.train()
         criterion = nn.CrossEntropyLoss().to(device)
 
-        x, label = data_sample
-        x = x.unsqueeze(0)
-        label = torch.tensor(label).unsqueeze(0)
-        x, label = x.to(device), label.to(device)
-        model.zero_grad()
-        log_probs = model(x)
-        loss = criterion(log_probs, label)
-        loss.backward()
+        if args.growing_type == "Single":
+            random_index = int(np.random.random() * len(train_data.dataset))
+            data_sample = train_data.dataset[random_index]
+            x, label = data_sample
+            x = x.unsqueeze(0)
+            label = torch.tensor(label).unsqueeze(0)
+            x, label = x.to(device), label.to(device)
+            model.zero_grad()
+            log_probs = model(x)
+            loss = criterion(log_probs, label)
+            loss.backward()
+        else:
+            model.zero_grad()
+            for batch_idx, (x, labels) in enumerate(train_data):
+                x, labels = x.to(device), labels.to(device)
+                log_probs = model(x)
+                loss = criterion(log_probs, labels)
+                loss.backward()
+                if args.growing_type == "batch":
+                    break
 
         # k_dict is the k for each layer
         top_k = {}
@@ -175,12 +188,12 @@ class MyModelTrainer(ModelTrainer):
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
 
-                if mode == 4:
-                    for name, weight in self.model.named_parameters():
-                        if name not in self.penalty_index:
-                            continue
-                        # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
-                        loss += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                # if mode == 4:
+                #     for name, weight in self.model.named_parameters():
+                #         if name not in self.penalty_index:
+                #             continue
+                #         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
+                #         loss += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
 
                 loss.backward()
 
@@ -192,10 +205,7 @@ class MyModelTrainer(ModelTrainer):
 
         if mode == 2:
             assert len(self.num_growth) != 0
-            # here needs to be verified !!!!!!
-            random_index =  int(np.random.random()*len(train_data.dataset))
-            data_sample = train_data.dataset[random_index]
-            self.candidate_set = self.get_top_k_grad(data_sample, device, self.num_growth, model)
+            self.candidate_set = self.get_top_k_grad(train_data, device, self.num_growth, model, args)
 
         self.optimizer_state_dict = optimizer.state_dict()
         self.lr_scheduler_state_dict = lr_scheduler.state_dict()

@@ -128,6 +128,8 @@ def add_args(parser):
 
     parser.add_argument("--T_max", type=int, default=300)
 
+    parser.add_argument("--growing_type", type=str, default="Single", help="Single|Batch|All")
+
     parser.add_argument(
         "--gpu_mapping_file",
         type=str,
