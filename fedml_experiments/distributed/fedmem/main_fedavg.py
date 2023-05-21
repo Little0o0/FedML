@@ -105,13 +105,15 @@ def add_args(parser):
 
     parser.add_argument("--dropit", type=int, default=0)
 
+    parser.add_argument("--act_scaling", type=int, default=1)
+
     parser.add_argument("--density", type=float, default=0.1)
 
     parser.add_argument("--adjust_rate", type=float, default=0.3)
 
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-magnitude",
                         help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
-    #
+
     parser.add_argument("--NoBN", type=int, default=1)
 
     parser.add_argument("--lam", type=float, default=0.1,
@@ -385,7 +387,10 @@ def load_data(args, dataset_name):
 def create_model(args, model_name, output_dim):
 
     if args.NoBN:
-        from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
+        if args.act_scaling:
+            from fedml_api.model.cv.resnet_bnfree import nf_resnet18 as resnet18
+        else:
+            from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
     else:
         from fedml_api.model.cv.resnet import resnet18, resnet56
 
@@ -412,7 +417,7 @@ def create_model(args, model_name, output_dim):
     elif model_name == "rnn" and args.dataset == "stackoverflow_nwp":
         logging.info("CNN + stackoverflow_nwp")
         model = RNN_StackOverFlow()
-    elif model_name == "resnet18":
+    elif model_name == "resnet18"   :
         model = resnet18(class_num=output_dim)
     elif model_name == "resnet56":
         model = resnet56(class_num=output_dim)

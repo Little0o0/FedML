@@ -133,7 +133,7 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1,
                                bias=False)
-        self.bn1 = nn.BatchNorm2d(self.inplanes)
+        # self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         # self.maxpool = nn.MaxPool2d()
         self.layer1 = self._make_layer(block, 16, layers[0])
@@ -159,7 +159,7 @@ class ResNet(nn.Module):
                     nn.init.constant_(m.bn2.weight, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
-        norm_layer = self._norm_layer
+        # norm_layer = self._norm_layer
         downsample = None
         previous_dilation = self.dilation
         if dilate:
@@ -168,17 +168,20 @@ class ResNet(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 conv1x1(self.inplanes, planes * block.expansion, stride),
-                norm_layer(planes * block.expansion),
+                # norm_layer(planes * block.expansion),
             )
 
         layers = []
         layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, norm_layer))
+                            self.base_width, previous_dilation,
+                            # norm_layer
+                            ))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes, groups=self.groups,
                                 base_width=self.base_width, dilation=self.dilation,
-                                norm_layer=norm_layer))
+                                # norm_layer=norm_layer
+                                ))
 
         return nn.Sequential(*layers)
 
@@ -231,7 +234,6 @@ def resnet56(class_num, pretrained=False, path=None, **kwargs):
 
         model.load_state_dict(new_state_dict)
     return model
-
 
 def resnet110(class_num, pretrained=False, path=None, **kwargs):
     """
