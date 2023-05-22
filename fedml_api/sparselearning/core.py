@@ -316,7 +316,7 @@ class Masking(object):
         :return:
         """
         self.module = module
-        logging.info(f"Dense FLOPs {self.dense_FLOPs:,}")
+        # logging.info(f"Dense FLOPs {self.dense_FLOPs:,}")
         for name, weight in self.module.named_parameters():
             self.mask_dict[name] = torch.zeros_like(
                 weight, dtype=torch.float32, requires_grad=False
