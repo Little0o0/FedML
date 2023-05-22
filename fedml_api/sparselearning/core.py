@@ -227,7 +227,7 @@ class Masking(object):
 
         self.stats.total_nonzero = self.baseline_nonzero
         self.stats.total_zero = self.total_params - self.baseline_nonzero
-        logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
+        # logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
 
 
 
@@ -247,7 +247,7 @@ class Masking(object):
         self.remove_type(nn.BatchNorm1d)
 
         self.init_mask_only(lottery_mask_path)
-        logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
+        # logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
         return self.mask_dict
 
     @torch.no_grad()
@@ -335,7 +335,7 @@ class Masking(object):
 
         # Call init
         self.init(lottery_mask_path)
-        logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
+        # logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
 
     def adjust_prune_rate(self):
         """
