@@ -22,8 +22,6 @@ class MyModelTrainer(ModelTrainer):
         self.candidate_set = dict()
         self.num_growth = dict()
         self.penalty_index = dict()
-        self.optimizer_state_dict = dict()
-        self.lr_scheduler_state_dict = dict()
         self.forgetting_stats = None
 
     def get_num_growth(self):
@@ -168,13 +166,7 @@ class MyModelTrainer(ModelTrainer):
         else:
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
-
-        if len(self.optimizer_state_dict) != 0:
-            optimizer.load_state_dict(self.optimizer_state_dict)
-
-        if len(self.lr_scheduler_state_dict) != 0:
-            lr_scheduler.load_state_dict(self.lr_scheduler_state_dict)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5, last_epoch=args.round_idx * args.epochs)
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer
@@ -206,9 +198,6 @@ class MyModelTrainer(ModelTrainer):
         if mode == 2:
             assert len(self.num_growth) != 0
             self.candidate_set = self.get_top_k_grad(train_data, device, self.num_growth, model, args)
-
-        self.optimizer_state_dict = optimizer.state_dict()
-        self.lr_scheduler_state_dict = lr_scheduler.state_dict()
 
     def test(self, test_data, device, args):
         model = self.model
