@@ -166,7 +166,8 @@ class MyModelTrainer(ModelTrainer):
         else:
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5, last_epoch=args.round_idx * args.epochs)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
+        lr_scheduler.last_epoch = args.round_idx * args.epochs
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer
