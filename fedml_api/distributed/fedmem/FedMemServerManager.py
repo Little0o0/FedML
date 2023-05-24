@@ -77,7 +77,7 @@ class FedMemServerManager(ServerManager):
 
             if self.mode == 1 and self.round_idx <= self.args.T_max \
                 and self.round_idx != 0 \
-                and self.round_idx % self.args.delta_epochs == 1:
+                and self.round_idx % self.args.delta_epochs == 0:
                 if self.args.pruning in ["FedTiny", "FedMem"]:
                     self.mode = 2
                     self.aggregator.trainer.update_num_growth()
