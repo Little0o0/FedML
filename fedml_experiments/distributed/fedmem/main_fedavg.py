@@ -105,16 +105,16 @@ def add_args(parser):
 
     parser.add_argument("--dropit", type=int, default=0)
 
-    parser.add_argument("--act_scaling", type=int, default=1)
+    parser.add_argument("--act_scaling", type=int, default=0)
 
-    parser.add_argument("--density", type=float, default=0.1)
+    parser.add_argument("--density", type=float, default=0.01)
 
     parser.add_argument("--adjust_rate", type=float, default=0.3)
 
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-magnitude",
                         help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
 
-    parser.add_argument("--NoBN", type=int, default=1)
+    parser.add_argument("--NoBN", type=int, default=0)
 
     parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
