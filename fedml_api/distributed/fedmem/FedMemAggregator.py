@@ -70,7 +70,7 @@ class FedMemAggregator(object):
             for name in self.model_candidate_dict[idx]:
                 self.model_candidate_dict[idx][name] = dict(self.model_candidate_dict[idx][name])
         self.trainer.mask.to_module_device_()
-        self.trainer.mask.step(self.args.epochs)
+        self.trainer.mask.step(self.args.epochs * (round + 1))
         candidate_set = dict()
         candidate_layer_names = list(self.model_candidate_dict[0].keys())
         for name in candidate_layer_names:

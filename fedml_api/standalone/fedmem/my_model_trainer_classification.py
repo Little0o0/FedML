@@ -120,7 +120,7 @@ class MyModelTrainer(ModelTrainer):
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
                 loss.backward()
-                if args.growing_type == "batch":
+                if args.growing_type == "Batch":
                     break
 
         # k_dict is the k for each layer

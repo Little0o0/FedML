@@ -75,7 +75,7 @@ class FedMemServerManager(ServerManager):
             global_model_params = self.aggregator.aggregate(self.round_idx, self.mode)
             self.aggregator.test_on_server_for_all_clients(self.round_idx)
 
-            if self.mode == 1 and self.round_idx <= self.args.T_max \
+            if self.mode == 1 and 100 <= self.round_idx <= self.args.T_max \
                 and self.round_idx != 0 \
                 and self.round_idx % self.args.delta_epochs == 0:
                 if self.args.pruning in ["FedTiny", "FedMem"]:
