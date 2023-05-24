@@ -4,6 +4,7 @@ import torch
 from torch import nn
 import math
 import numpy as np
+import torch.utils.data as data
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
     from fedml_api.sparselearning.core import Masking
@@ -22,7 +23,6 @@ class MyModelTrainer(ModelTrainer):
         self.candidate_set = dict()
         self.num_growth = dict()
         self.penalty_index = dict()
-        self.forgetting_stats = None
 
     def get_num_growth(self):
         return self.num_growth
@@ -102,7 +102,6 @@ class MyModelTrainer(ModelTrainer):
 
         model.train()
         criterion = nn.CrossEntropyLoss().to(device)
-
         if args.growing_type == "Single":
             random_index = int(np.random.random() * len(train_data.dataset))
             data_sample = train_data.dataset[random_index]
@@ -154,7 +153,7 @@ class MyModelTrainer(ModelTrainer):
 
         model.zero_grad()
         return top_k
-    def train(self, train_data, device, args, mode=0):
+    def train(self, train_data, device, args, mode=0, forgetting_stats=None):
         model = self.model
         model.to(device)
         model.train()
@@ -198,7 +197,42 @@ class MyModelTrainer(ModelTrainer):
 
         if mode == 2:
             assert len(self.num_growth) != 0
-            self.candidate_set = self.get_top_k_grad(train_data, device, self.num_growth, model, args)
+            if forgetting_stats is not None:
+                assert len(forgetting_stats) == len(train_data.dataset)
+
+            if args.forgetting_set:
+                p = int(0.1 * len(forgetting_stats))
+                idx = np.argsort(forgetting_stats)[::-1][:p]
+                forgetting_dataset = torch.utils.data.Subset(train_data.dataset, idx)
+                forgetting_data = data.DataLoader(dataset=forgetting_dataset,
+                    batch_size=args.batch_size, shuffle=True, drop_last=True)
+                self.candidate_set = self.get_top_k_grad(forgetting_data,
+                     device, self.num_growth, model, args)
+            else:
+                self.candidate_set = self.get_top_k_grad(train_data,
+                            device, self.num_growth, model, args)
+
+        if args.pruning == "FedMem" and args.forgetting_set:
+            forgetting_stats = self.update_forgetting_set(train_data, device, model, args, forgetting_stats)
+
+        return forgetting_stats
+
+    def update_forgetting_set(self, train_data, device, model, args, forgetting_stats):
+        model.eval()
+        model.to(device)
+        DataLoader = data.DataLoader(dataset=train_data.dataset,
+            batch_size=args.batch_size, shuffle=False, drop_last=False)
+
+        incorrect = np.array([])
+        with torch.no_grad():
+            for batch_idx, (x, target) in enumerate(DataLoader):
+                x = x.to(device)
+                pred = model(x)
+                _, predicted = torch.max(pred, -1)
+                tmp_np = predicted.cpu().eq(target).flatten().logical_not().int().numpy()
+                incorrect = np.concatenate([incorrect, tmp_np] )
+        forgetting_stats += incorrect
+        return forgetting_stats
 
     def test(self, test_data, device, args):
         model = self.model
@@ -228,22 +262,6 @@ class MyModelTrainer(ModelTrainer):
                 metrics['test_loss'] += loss.item() * target.size(0)
                 metrics['test_total'] += target.size(0)
         return metrics
-
-    def cal_forgetting_stats(self, train_data, device, args):
-        model = self.model
-        model.to(device)
-        model.eval()
-        with torch.no_grad():
-            for batch_idx, (x, target) in enumerate(train_data):
-                x = x.to(device)
-                target = target.to(device)
-                pred = model(x)
-
-                _, predicted = torch.max(pred, -1)
-                incorrect = predicted.neq(target)
-                # this may have bug
-                self.forgetting_stats[batch_idx*args.batch_size: (batch_idx+1)*args.batch_size][incorrect] += 1
-
 
     def test_on_the_server(self, train_data_local_dict, test_data_local_dict, device, args=None) -> bool:
         return False

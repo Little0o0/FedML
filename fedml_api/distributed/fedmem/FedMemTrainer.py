@@ -1,3 +1,5 @@
+import numpy as np
+
 from .utils import transform_tensor_to_list
 
 
@@ -15,6 +17,10 @@ class FedMemTrainer(object):
         self.train_local = None
         self.local_sample_number = None
         self.test_local = None
+        self.forgetting_stats_dict = {}
+        for k, dataloader in train_data_local_dict.items():
+            self.forgetting_stats_dict[k] = np.zeros(len(dataloader.dataset))
+        self.forgetting_stats = None
 
         self.device = device
         self.args = args
@@ -27,10 +33,12 @@ class FedMemTrainer(object):
         self.train_local = self.train_data_local_dict[client_index]
         self.local_sample_number = self.train_data_local_num_dict[client_index]
         self.test_local = self.test_data_local_dict[client_index]
+        self.forgetting_stats = self.forgetting_stats_dict[client_index]
 
-    def train(self, round_idx = None, mode = 0):
+    def train(self, round_idx=None, mode=0):
         self.args.round_idx = round_idx
-        self.trainer.train(self.train_local, self.device, self.args, mode=mode)
+        self.forgetting_stats_dict[self.client_index] = self.trainer.train(
+            self.train_local, self.device, self.args, mode=mode, forgetting_stats=self.forgetting_stats)
 
         weights = self.trainer.get_model_params()
         candidate_set = dict() if mode not in [2, ] else self.trainer.get_model_candidate_set()

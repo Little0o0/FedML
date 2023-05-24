@@ -107,7 +107,7 @@ def add_args(parser):
 
     parser.add_argument("--act_scaling", type=int, default=0)
 
-    parser.add_argument("--density", type=float, default=0.01)
+    parser.add_argument("--density", type=float, default=0.1)
 
     parser.add_argument("--adjust_rate", type=float, default=0.3)
 
@@ -122,7 +122,7 @@ def add_args(parser):
     parser.add_argument("--p", type=float, default=2.0,
             help="penalty value for self-transfer learning")
 
-    parser.add_argument("--forgetting_set", type=int, default=0,
+    parser.add_argument("--forgetting_set", type=int, default=1,
             help="whether create forgetting set")
 
     parser.add_argument("--budget_training", type=int, default=0,

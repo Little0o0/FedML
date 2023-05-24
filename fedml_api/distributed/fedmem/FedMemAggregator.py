@@ -45,6 +45,7 @@ class FedMemAggregator(object):
 
     def get_mask_dict(self):
         return self.trainer.mask_dict
+
     def set_global_model_params(self, model_parameters):
         self.trainer.set_model_params(model_parameters)
 
@@ -115,7 +116,7 @@ class FedMemAggregator(object):
             model_mask_dict[name] = mask.float()
             # new_nonzero = mask.sum().item()
             # total_nonzero_new += new_nonzero
-            logging.info(f"layer {name} regrow {removed}, density increase {removed / weight.numel()}")
+            # logging.info(f"layer {name} regrow {removed}, density increase {removed / weight.numel()}")
 
         self.trainer.set_model_mask_dict(model_mask_dict)
         self.trainer.mask.apply_mask()
