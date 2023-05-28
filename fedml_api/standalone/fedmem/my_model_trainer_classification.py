@@ -98,6 +98,7 @@ class MyModelTrainer(ModelTrainer):
     #     density = args.density
     #     pass
 
+
     def get_top_k_grad(self, train_data, device, k_dict, model, args):
 
         model.train()
@@ -140,19 +141,21 @@ class MyModelTrainer(ModelTrainer):
 
             _, idx = torch.sort(torch.abs(grad).flatten(), descending=True)
 
-            # logging.info(f"layer {name} num of remove {num_remove} and num of total {len(idx)}")
-            idx = idx[:num_remove]
-            idx = [x.item() for x in idx]
-            grad = grad.flatten()[idx]
+            # logging.debug(f"layer {name} num of remove {num_remove} and num of total {len(idx)}")
+            idx = idx[:num_remove].tolist()
+            TopGrad = grad.flatten()[idx]
             # must use this to avoid the error
-            grad = [x.item() for x in grad]
-
+            TopGrad = TopGrad.tolist()
+            # logging.debug(f"layer {name} top {num_remove} grad", TopGrad)
+            # logging.info(f"length of layer {name} top {num_remove} grad TopGrad {len(TopGrad)} ")
             # self.candidate_set[name] = dict(zip(idx, grad))
             # use list to reduce the key usage.
-            top_k[name] = list(zip(idx, grad))
+            top_k[name] = list(zip(idx, TopGrad))
 
         model.zero_grad()
         return top_k
+
+
     def train(self, train_data, device, args, mode=0, forgetting_stats=None):
         model = self.model
         model.to(device)
@@ -174,6 +177,34 @@ class MyModelTrainer(ModelTrainer):
             self.mask.apply_mask()
 
         for epoch in range(args.epochs):
+
+            if epoch == args.epochs//2 and mode == 2 and args.pruning == "FedDST":
+                topk_grad = \
+                    self.get_top_k_grad(train_data, device, self.num_growth, model, args)
+
+                for name, weight in model.named_parameters():
+                    if name not in self.mask_dict or name not in topk_grad:
+                        continue
+                    mask = self.mask_dict[name]
+                    removed = self.num_growth[name]
+                    regrowth_index = [x[0] for x in topk_grad[name]]
+                    assert removed == len(regrowth_index)
+                    num_zeros = int((mask.numel() - mask.sum()).cpu().item())
+                    k = num_zeros + removed
+
+                    _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
+                    _, old_idx = torch.sort(mask.cpu().flatten())
+                    prune_index = torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+
+                    self.mask_dict[name].data.view(-1)[regrowth_index] = 1.0
+                    weight.data.view(-1)[regrowth_index] = 0.0
+
+                    self.mask_dict[name].data.view(-1)[prune_index] = 0.0
+                    weight.data.view(-1)[prune_index] = 0.0
+
+                self.mask.mask_dict = self.mask_dict
+                self.mask.apply_mask()
+
             for batch_idx, (x, labels) in enumerate(train_data):
                 x, labels = x.to(device), labels.to(device)
                 model.zero_grad()
@@ -197,7 +228,7 @@ class MyModelTrainer(ModelTrainer):
 
         if mode == 2:
             assert len(self.num_growth) != 0
-            if forgetting_stats is not None:
+            if args.forgetting_set and forgetting_stats is not None:
                 assert len(forgetting_stats) == len(train_data.dataset)
 
             if args.forgetting_set:

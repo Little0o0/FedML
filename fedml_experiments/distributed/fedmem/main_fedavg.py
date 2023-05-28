@@ -114,7 +114,7 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-magnitude",
                         help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
 
-    parser.add_argument("--NoBN", type=int, default=1)
+    parser.add_argument("--NoBN", type=int, default=0)
 
     parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
@@ -128,7 +128,7 @@ def add_args(parser):
     parser.add_argument("--budget_training", type=int, default=0,
             help="whether activate budget training")
 
-    parser.add_argument("--T_max", type=int, default=300)
+    parser.add_argument("--T_max", type=int, default=400)
 
     parser.add_argument("--growing_type", type=str, default="Single", help="Single|Batch|All")
 
@@ -165,7 +165,7 @@ def add_args(parser):
 
 def load_data(args, dataset_name):
     if dataset_name == "mnist":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -184,7 +184,7 @@ def load_data(args, dataset_name):
         args.client_num_in_total = client_num
 
     elif dataset_name == "femnist":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -199,7 +199,7 @@ def load_data(args, dataset_name):
         args.client_num_in_total = client_num
 
     elif dataset_name == "shakespeare":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -214,7 +214,7 @@ def load_data(args, dataset_name):
         args.client_num_in_total = client_num
 
     elif dataset_name == "fed_shakespeare":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -229,7 +229,7 @@ def load_data(args, dataset_name):
         args.client_num_in_total = client_num
 
     elif dataset_name == "fed_cifar100":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -243,7 +243,7 @@ def load_data(args, dataset_name):
         ) = load_partition_data_federated_cifar100(args.dataset, args.data_dir)
         args.client_num_in_total = client_num
     elif dataset_name == "stackoverflow_lr":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -257,7 +257,7 @@ def load_data(args, dataset_name):
         ) = load_partition_data_federated_stackoverflow_lr(args.dataset, args.data_dir)
         args.client_num_in_total = client_num
     elif dataset_name == "stackoverflow_nwp":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             client_num,
             train_data_num,
@@ -271,7 +271,7 @@ def load_data(args, dataset_name):
         ) = load_partition_data_federated_stackoverflow_nwp(args.dataset, args.data_dir)
         args.client_num_in_total = client_num
     elif dataset_name == "ILSVRC2012":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         (
             train_data_num,
             test_data_num,
@@ -291,7 +291,7 @@ def load_data(args, dataset_name):
         )
 
     elif dataset_name == "gld23k":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         args.client_num_in_total = 233
         fed_train_map_file = os.path.join(args.data_dir, "mini_gld_train_split.csv")
         fed_test_map_file = os.path.join(args.data_dir, "mini_gld_test.csv")
@@ -318,7 +318,7 @@ def load_data(args, dataset_name):
         )
 
     elif dataset_name == "gld160k":
-        logging.info("load_data. dataset_name = %s" % dataset_name)
+        logging.debug("load_data. dataset_name = %s" % dataset_name)
         args.client_num_in_total = 1262
         fed_train_map_file = os.path.join(args.data_dir, "federated_train.csv")
         fed_test_map_file = os.path.join(args.data_dir, "test.csv")
@@ -394,28 +394,28 @@ def create_model(args, model_name, output_dim):
     else:
         from fedml_api.model.cv.resnet import resnet18, resnet56
 
-    logging.info("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
+    logging.debug("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
     model = None
     if model_name == "lr" and args.dataset == "mnist":
-        logging.info("LogisticRegression + MNIST")
+        logging.debug("LogisticRegression + MNIST")
         model = LogisticRegression(28 * 28, output_dim)
     elif model_name == "rnn" and args.dataset == "shakespeare":
-        logging.info("RNN + shakespeare")
+        logging.debug("RNN + shakespeare")
         model = RNN_OriginalFedAvg()
     elif model_name == "cnn" and args.dataset == "femnist":
-        logging.info("CNN + FederatedEMNIST")
+        logging.debug("CNN + FederatedEMNIST")
         model = CNN_DropOut(False)
     # elif model_name == "resnet18_gn" and args.dataset == "fed_cifar100":
-    #     logging.info("ResNet18_GN + Federated_CIFAR100")
+    #     logging.debug("ResNet18_GN + Federated_CIFAR100")
     #     model = resnet18(class_num=output_dim)
     elif model_name == "rnn" and args.dataset == "fed_shakespeare":
-        logging.info("RNN + fed_shakespeare")
+        logging.debug("RNN + fed_shakespeare")
         model = RNN_OriginalFedAvg()
     elif model_name == "lr" and args.dataset == "stackoverflow_lr":
-        logging.info("lr + stackoverflow_lr")
+        logging.debug("lr + stackoverflow_lr")
         model = LogisticRegression(10004, output_dim)
     elif model_name == "rnn" and args.dataset == "stackoverflow_nwp":
-        logging.info("CNN + stackoverflow_nwp")
+        logging.debug("CNN + stackoverflow_nwp")
         model = RNN_StackOverFlow()
     elif model_name == "resnet18"   :
         model = resnet18(class_num=output_dim)
@@ -458,7 +458,7 @@ if __name__ == "__main__":
         datefmt="%a, %d %b %Y %H:%M:%S",
     )
     hostname = socket.gethostname()
-    logging.info(
+    logging.debug(
         "#############process ID = "
         + str(process_id)
         + ", host name = "
@@ -488,7 +488,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(0)
 
     # Please check "GPU_MAPPING.md" to see how to define the topology
-    logging.info("process_id = %d, size = %d" % (process_id, worker_number))
+    logging.debug("process_id = %d, size = %d" % (process_id, worker_number))
     device = mapping_processes_to_gpu_device_from_yaml_file(
         process_id, worker_number, args.gpu_mapping_file, args.gpu_mapping_key
     )

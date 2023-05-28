@@ -41,7 +41,13 @@ class FedMemTrainer(object):
             self.train_local, self.device, self.args, mode=mode, forgetting_stats=self.forgetting_stats)
 
         weights = self.trainer.get_model_params()
-        candidate_set = dict() if mode not in [2, ] else self.trainer.get_model_candidate_set()
+        if mode == 2:
+            if self.args.pruning in ["FedTiny", "FedMem"]:
+                candidate_set = self.trainer.get_model_candidate_set()
+            elif self.args.pruning == "FedDST":
+                candidate_set = self.trainer.get_model_mask_dict()
+        else:
+            candidate_set = dict()
 
         # transform Tensor to list
         if self.args.is_mobile == 1:

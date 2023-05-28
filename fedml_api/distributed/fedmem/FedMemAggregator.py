@@ -50,7 +50,7 @@ class FedMemAggregator(object):
         self.trainer.set_model_params(model_parameters)
 
     def add_local_trained_result(self, index, model_params, sample_num, candidate_set):
-        logging.info("add_model. index = %d" % index)
+        logging.debug("add_model. index = %d" % index)
         self.model_dict[index] = model_params
         self.sample_num_dict[index] = sample_num
         self.flag_client_model_uploaded_dict[index] = True
@@ -105,15 +105,13 @@ class FedMemAggregator(object):
             self.trainer.penalty_index[name] = \
                     torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
 
-            logging.info(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned ")
+            logging.debug(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned ")
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
 
-            mask.data.view(-1)[regrowth_index] = 1.0
+            model_mask_dict[name].data.view(-1)[regrowth_index] = 1.0
             weight.data.view(-1)[regrowth_index] = 0.0
 
-            model_mask_dict.pop(name)
-            model_mask_dict[name] = mask.float()
             # new_nonzero = mask.sum().item()
             # total_nonzero_new += new_nonzero
             # logging.info(f"layer {name} regrow {removed}, density increase {removed / weight.numel()}")
@@ -121,8 +119,8 @@ class FedMemAggregator(object):
         self.trainer.set_model_mask_dict(model_mask_dict)
         self.trainer.mask.apply_mask()
 
-        logging.info("############## After Growing ##########")
-        model_mask.calculate_density()
+        # logging.debug("############## After Growing ##########")
+        # model_mask.calculate_density()
 
         # model_mask.adjustments.append(
         #     model_mask.baseline_nonzero - total_nonzero_new
@@ -149,12 +147,10 @@ class FedMemAggregator(object):
                 continue
             mask = model_mask_dict[name]
             prune_index = self.trainer.penalty_index[name]
-            mask.data.view(-1)[prune_index] = 0.0
+            model_mask_dict[name].data.view(-1)[prune_index] = 0.0
             weight.data.view(-1)[prune_index] = 0.0
 
-            new_nonzero = mask.sum().item()
-            model_mask_dict.pop(name)
-            model_mask_dict[name] = mask.float()
+            new_nonzero = model_mask_dict[name].sum().item()
             total_nonzero_new += new_nonzero
 
         self.trainer.set_model_mask_dict(model_mask_dict)
@@ -175,8 +171,58 @@ class FedMemAggregator(object):
             )
 
         model_mask.gather_statistics()
-        logging.info("############## After Pruning ##########")
-        model_mask.calculate_density()
+        # logging.debug("############## After Pruning ##########")
+        # model_mask.calculate_density()
+
+    def aggregate_and_prune(self, round, training_num):
+        model_mask = self.trainer.mask
+
+        new_mask_dict = dict()
+        for idx in self.model_candidate_dict:
+            for name in self.model_candidate_dict[idx]:
+                if name not in new_mask_dict:
+                    new_mask_dict[name] = self.model_candidate_dict[idx][name].to(self.device)
+                else:
+                    new_mask_dict[name] = torch.logical_or(new_mask_dict[name],
+                                self.model_candidate_dict[idx][name].to(self.device)).float()
+        num_remove = dict()
+        for name, mask in self.trainer.get_model_mask_dict().items():
+            num_remove[name] = int(torch.sum(new_mask_dict[name]).item() - torch.sum(mask).item())
+
+        total_nonzero_new = 0
+        for name, weight in model_mask.module.named_parameters():
+            if name not in num_remove:
+                continue
+
+            removed = num_remove[name]
+            mask = new_mask_dict[name]
+            num_zeros = int((mask.numel() - mask.sum()).cpu().item())
+            k = num_zeros + removed
+            _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
+            _, old_idx = torch.sort(mask.cpu().flatten())
+            prune_index = torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+            new_mask_dict[name].data.view(-1)[prune_index] = 0.0
+            new_nonzero = new_mask_dict[name].sum().item()
+            total_nonzero_new += new_nonzero
+
+        self.trainer.set_model_mask_dict(new_mask_dict)
+        self.trainer.mask.apply_mask()
+
+        model_mask.adjustments.append(
+            model_mask.baseline_nonzero - total_nonzero_new
+        )  # will be zero if deterministic
+        model_mask.adjusted_growth = (
+                0.25 * model_mask.adjusted_growth
+                + (0.75 * model_mask.adjustments[-1])
+                + np.mean(model_mask.adjustments)
+        )
+        if model_mask.stats.total_nonzero > 0:
+            logging.debug(
+                f"Nonzero before/after: {model_mask.stats.total_nonzero}/{total_nonzero_new}. "
+                f"Growth adjustment: {model_mask.adjusted_growth:.2f}."
+            )
+
+        model_mask.gather_statistics()
 
     def prune_and_grow(self, round, training_num):
         for idx in self.model_candidate_dict:
@@ -214,10 +260,6 @@ class FedMemAggregator(object):
             removed = num_growth[name]
             model_mask.stats.total_removed += removed
             model_mask.stats.removed_dict[name] = removed
-
-            # # growth from candidate
-            # if self.args.SFt and self.args.ABNS:
-            #     removed = int(1.2 * removed)
 
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
@@ -258,7 +300,7 @@ class FedMemAggregator(object):
             model_list.append((self.sample_num_dict[idx], self.model_dict[idx]))
             training_num += self.sample_num_dict[idx]
 
-        logging.info("len of self.model_dict[idx] = " + str(len(self.model_dict)))
+        logging.debug("len of self.model_dict[idx] = " + str(len(self.model_dict)))
 
         # logging.info("################aggregate: %d" % len(model_list))
         (num0, averaged_params) = model_list[0]
@@ -276,9 +318,12 @@ class FedMemAggregator(object):
 
         # update the global model which is cached at the server side
         self.set_global_model_params(averaged_params)
+
         if mode == 2:
             if self.args.pruning == "FedTiny":
                 self.prune_and_grow(round, training_num)
+            elif self.args.pruning == "FedDST":
+                self.aggregate_and_prune(round, training_num)
             elif self.args.pruning == "FedMem":
                 self.grow_and_record_prune_idx(round, training_num)
         elif mode == 4:
@@ -300,7 +345,7 @@ class FedMemAggregator(object):
             num_clients = min(client_num_per_round, client_num_in_total)
             np.random.seed(round_idx)  # make sure for each comparison, we are selecting the same clients each round
             client_indexes = np.random.choice(range(client_num_in_total), num_clients, replace=False)
-        logging.info("client_indexes = %s" % str(client_indexes))
+        logging.debug("client_indexes = %s" % str(client_indexes))
         return client_indexes
 
     def _generate_validation_set(self, num_samples=10000):

@@ -44,7 +44,7 @@ class FedMemServerManager(ServerManager):
 
     def send_init_msg(self):
         # sampling clients
-        logging.info(f"current mode is {self.mode}")
+        logging.info(f"init mode is {self.mode}")
         client_indexes = self.aggregator.client_sampling(self.round_idx, self.args.client_num_in_total,
                                                          self.args.client_num_per_round)
         global_model_params = self.aggregator.get_global_model_params()
@@ -69,21 +69,22 @@ class FedMemServerManager(ServerManager):
         candidate_set = msg_params.get(MyMessage.MSG_ARG_KEY_CANDIDATE_SET)
         self.aggregator.add_local_trained_result(sender_id - 1, model_params, local_sample_number, candidate_set)
         b_all_received = self.aggregator.check_whether_all_receive()
-        logging.info("b_all_received = " + str(b_all_received))
+        logging.debug("b_all_received = " + str(b_all_received))
         if b_all_received:
             logging.info(f"############current mode is {self.mode} ##############")
             global_model_params = self.aggregator.aggregate(self.round_idx, self.mode)
             self.aggregator.test_on_server_for_all_clients(self.round_idx)
 
-            if self.mode == 1 and 100 <= self.round_idx <= self.args.T_max \
+            if self.mode == 1 \
+                and self.round_idx <= self.args.T_max \
                 and self.round_idx != 0 \
                 and self.round_idx % self.args.delta_epochs == 0:
-                if self.args.pruning in ["FedTiny", "FedMem"]:
+                if self.args.pruning in ["FedTiny", "FedMem", "FedDST"]:
                     self.mode = 2
                     self.aggregator.trainer.update_num_growth()
 
             elif self.mode == 2:
-                if self.args.pruning == "FedTiny":
+                if self.args.pruning in ["FedTiny", "FedDST"]:
                     self.mode = 3
                 elif self.args.pruning == "FedMem":
                     self.mode = 4
@@ -139,7 +140,7 @@ class FedMemServerManager(ServerManager):
     def send_message_sync_model_to_client(self, receive_id, global_model_params,
                                           client_index, mode, num_growth, mask_dict,
                                           penalty_index):
-        logging.info("send_message_sync_model_to_client. receive_id = %d" % receive_id)
+        logging.debug("send_message_sync_model_to_client. receive_id = %d" % receive_id)
         message = Message(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT, self.get_sender_id(), receive_id)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, global_model_params)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))

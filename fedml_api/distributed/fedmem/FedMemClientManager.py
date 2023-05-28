@@ -56,7 +56,7 @@ class FedMemClientManager(ClientManager):
         self.__train()
 
     def handle_message_receive_model_from_server(self, msg_params):
-        logging.info("handle_message_receive_model_from_server.")
+        logging.debug("handle_message_receive_model_from_server.")
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         self.mode = msg_params.get(MyMessage.MSG_ARG_KEY_MODE)
@@ -94,6 +94,6 @@ class FedMemClientManager(ClientManager):
         self.send_message(message)
 
     def __train(self):
-        logging.info("#######training########### round_id = %d" % self.round_idx)
+        logging.debug("#######training########### round_id = %d" % self.round_idx)
         weights, local_sample_num, candidate_set = self.trainer.train(self.round_idx, self.mode)
         self.send_model_to_server(0, weights, local_sample_num, candidate_set)
