@@ -168,9 +168,9 @@ class MyModelTrainer(ModelTrainer):
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
 
-        step_size = args.epochs * args.comm_round // 10
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.5)
-        lr_scheduler.step(epoch=args.round_idx * args.epochs)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
+        if args.round_idx % 100 == 0:
+            lr_scheduler.step(epoch=args.round_idx // 100)
         alpha = lr_scheduler.get_lr()[0]
 
         if mode in [1, 2, 3, 4]:
@@ -235,7 +235,7 @@ class MyModelTrainer(ModelTrainer):
                     self.mask.step()
                 else:
                     optimizer.step()
-            lr_scheduler.step()
+            # lr_scheduler.step()
 
         if mode == 2:
             assert len(self.num_growth) != 0
