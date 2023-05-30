@@ -2,7 +2,6 @@ import numpy as np
 
 from .utils import transform_tensor_to_list
 
-
 class FedMemTrainer(object):
 
     def __init__(self, client_index, train_data_local_dict, train_data_local_num_dict, test_data_local_dict,

@@ -125,10 +125,10 @@ def add_args(parser):
     parser.add_argument("--forgetting_set", type=int, default=0,
             help="whether create forgetting set")
 
-    parser.add_argument("--budget_training", type=int, default=0,
+    parser.add_argument("--budget_training", type=int, default=1,
             help="whether activate budget training")
 
-    parser.add_argument("--T_max", type=int, default=400)
+    parser.add_argument("--T_max", type=int, default=300)
 
     parser.add_argument("--growing_type", type=str, default="Single", help="Single|Batch|All")
 

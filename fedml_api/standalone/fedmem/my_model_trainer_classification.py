@@ -69,7 +69,6 @@ class MyModelTrainer(ModelTrainer):
                 )
                 self.num_growth[name] = num_remove
 
-
     def init_mask(self, args, mask_dict=None):
         # return mask_dict
         if args.pruning in ["FedTiny", "FedDST", "FedMem", "Mag"]:
@@ -168,8 +167,11 @@ class MyModelTrainer(ModelTrainer):
         else:
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
-        lr_scheduler.last_epoch = args.round_idx * args.epochs
+
+        step_size = args.epochs * args.comm_round // 10
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.5)
+        lr_scheduler.step(epoch=args.round_idx * args.epochs)
+        alpha = lr_scheduler.get_lr()[0]
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer
@@ -177,7 +179,6 @@ class MyModelTrainer(ModelTrainer):
             self.mask.apply_mask()
 
         for epoch in range(args.epochs):
-
             if epoch == args.epochs//2 and mode == 2 and args.pruning == "FedDST":
                 topk_grad = \
                     self.get_top_k_grad(train_data, device, self.num_growth, model, args)
@@ -212,11 +213,21 @@ class MyModelTrainer(ModelTrainer):
                 loss = criterion(log_probs, labels)
 
                 if mode == 4:
+                    penalty = 0
                     for name, weight in self.model.named_parameters():
                         if name not in self.penalty_index:
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
-                        loss += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                        penalty += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                    loss += penalty
+
+                    if args.budget_training:
+                        p = 1 - (args.round_idx % args.transfer_epochs + 1)/ args.transfer_epochs
+                        beta = p * torch.sigmoid(penalty.cpu()).item()
+                        lr = max(alpha, beta)
+                        # logging.info(f"budgeted aware learnin rate is {lr}")
+                        for param_group in optimizer.param_groups:
+                            param_group["lr"] = lr
 
                 loss.backward()
 
