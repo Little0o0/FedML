@@ -81,7 +81,7 @@ def add_args(parser):
 
     parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|Mag]")
 
-    parser.add_argument("--lr", type=float, default=0.001, metavar="LR", help="learning rate (default: 0.001)")
+    parser.add_argument("--lr", type=float, default=0.01, metavar="LR", help="learning rate (default: 0.001)")
 
     parser.add_argument("--wd", help="weight decay parameter;", type=float, default=0.0001)
 
@@ -101,7 +101,7 @@ def add_args(parser):
 
     parser.add_argument("--delta_epochs", type=int, default=20)
 
-    parser.add_argument("--transfer_epochs", type=int, default=10)
+    parser.add_argument("--transfer_epochs", type=int, default=18)
 
     parser.add_argument("--dropit", type=int, default=0)
 
@@ -119,13 +119,13 @@ def add_args(parser):
     parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
 
-    parser.add_argument("--p", type=float, default=2.0,
+    parser.add_argument("--p", type=float, default=1.0,
             help="penalty value for self-transfer learning")
 
     parser.add_argument("--forgetting_set", type=int, default=0,
             help="whether create forgetting set")
 
-    parser.add_argument("--budget_training", type=int, default=1,
+    parser.add_argument("--budget_training", type=int, default=0,
             help="whether activate budget training")
 
     parser.add_argument("--T_max", type=int, default=300)
