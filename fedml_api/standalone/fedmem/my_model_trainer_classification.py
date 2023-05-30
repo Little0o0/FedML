@@ -169,9 +169,10 @@ class MyModelTrainer(ModelTrainer):
                                          weight_decay=args.wd, amsgrad=True)
 
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-        if args.round_idx % 100 == 0:
-            lr_scheduler.step(epoch=args.round_idx // 100)
+        lr_scheduler.step(epoch=args.round_idx)
         alpha = lr_scheduler.get_lr()[0]
+        beta = 10e-5
+
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer
@@ -224,10 +225,11 @@ class MyModelTrainer(ModelTrainer):
                     if args.budget_training:
                         p = 1 - (args.round_idx % args.transfer_epochs + 1)/ args.transfer_epochs
                         beta = 0.1 * p * torch.sigmoid(penalty.cpu()).item()
-                        lr = max(alpha, beta)
-                        # logging.info(f"budgeted aware learnin rate is {lr}")
-                        for param_group in optimizer.param_groups:
-                            param_group["lr"] = lr
+                
+                lr = max(alpha, beta)
+                # logging.info(f"budgeted aware learnin rate is {lr}")
+                for param_group in optimizer.param_groups:
+                    param_group["lr"] = lr
 
                 loss.backward()
 
