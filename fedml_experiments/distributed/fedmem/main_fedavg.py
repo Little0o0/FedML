@@ -56,7 +56,7 @@ def add_args(parser):
     parser.add_argument(
         "--partition_method",
         type=str,
-        default="homo",
+        default="hetero",
         metavar="N",
         help="how to partition the dataset on local workers",
     )
