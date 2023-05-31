@@ -224,7 +224,7 @@ class MyModelTrainer(ModelTrainer):
 
                     if args.budget_training:
                         p = 1 - (args.round_idx % args.transfer_epochs + 1)/ args.transfer_epochs
-                        beta = 0.1 * p * torch.sigmoid(penalty.cpu()).item()
+                        beta = args.budget_scaling * p * torch.sigmoid(penalty.cpu()).item()
 
                 lr = max(alpha, beta)
                 # logging.info(f"budgeted aware learnin rate is {lr}")
