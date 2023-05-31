@@ -79,22 +79,34 @@ class FedMemServerManager(ServerManager):
                 and self.round_idx <= self.args.T_max \
                 and self.round_idx != 0 \
                 and self.round_idx % self.args.delta_epochs == 0:
+
                 if self.args.pruning in ["FedTiny", "FedMem", "FedDST"]:
                     self.mode = 2
                     self.aggregator.trainer.update_num_growth()
+                elif self.args.pruning == "FedMem_v2":
+                    self.mode = 4
+                    self.aggregator.trainer.update_num_growth()
+                    self.aggregator.update_penalty_index()
 
             elif self.mode == 2:
                 if self.args.pruning in ["FedTiny", "FedDST"]:
                     self.mode = 3
                 elif self.args.pruning == "FedMem":
                     self.mode = 4
+                elif self.args.pruning == "FedMem_v2":
+                    self.mode = 4 if self.round_idx <= self.args.T_max else 3
 
             elif self.mode == 3:
                 self.mode = 1
 
-            elif self.mode == 4 and \
-                    self.round_idx % self.args.delta_epochs == self.args.transfer_epochs:
-                self.mode = 3
+            elif self.mode == 4:
+                if self.args.pruning == "FedMem":
+                    if self.round_idx % self.args.delta_epochs == self.args.transfer_epochs:
+                        self.mode = 3
+                elif self.args.pruning == "FedMem_v2":
+                    if self.round_idx % self.args.delta_epochs == 0:
+                        self.mode = 2
+                        self.aggregator.trainer.update_num_growth()
 
             num_growth = dict() if self.mode != 2 else self.aggregator.trainer.get_num_growth()
             mask_dict = dict() if self.mode not in [3, 4] else self.aggregator.trainer.get_model_mask_dict()

@@ -47,6 +47,7 @@ class Masking(object):
             if name in self.mask_dict:
                 weight.data = weight.data * self.mask_dict[name]
 
+
     def sparsify(self, **kwargs):
         """
         Call sparsity init func

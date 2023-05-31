@@ -65,6 +65,23 @@ class FedMemAggregator(object):
             self.flag_client_model_uploaded_dict[idx] = False
         return True
 
+    def update_penalty_index(self):
+        model_mask = self.trainer.mask
+        model_mask_dict = self.trainer.get_model_mask_dict()
+        num_growth = self.trainer.get_num_growth()
+        for name, weight in model_mask.module.named_parameters():
+            if name not in model_mask_dict:
+                continue
+            mask = model_mask_dict[name]
+            removed = num_growth[name]
+
+            num_zeros = int((mask.numel() - mask.sum()).cpu().item())
+            k = num_zeros + removed
+            _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
+            _, old_idx = torch.sort(mask.cpu().flatten())
+            self.trainer.penalty_index[name] = \
+                torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+
     def grow_and_record_prune_idx(self, round, training_num):
         for idx in self.model_candidate_dict:
             for name in self.model_candidate_dict[idx]:
@@ -97,7 +114,6 @@ class FedMemAggregator(object):
                 continue
             mask = model_mask_dict[name]
             removed = num_growth[name]
-
             num_zeros = int((mask.numel() - mask.sum()).cpu().item())
             k = num_zeros + removed
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
@@ -105,7 +121,7 @@ class FedMemAggregator(object):
             self.trainer.penalty_index[name] = \
                     torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
 
-            logging.debug(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned ")
+            logging.info(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned, the overall is {mask.numel().item()}")
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
 
@@ -138,19 +154,19 @@ class FedMemAggregator(object):
         #
         # model_mask.gather_statistics()
 
-    def prune(self,):
+    def prune_penalty_index(self,):
         model_mask = self.trainer.mask
         model_mask_dict = self.trainer.get_model_mask_dict()
         total_nonzero_new = 0
         for name, weight in model_mask.module.named_parameters():
             if name not in model_mask_dict or name not in self.trainer.penalty_index:
                 continue
-            mask = model_mask_dict[name]
+
             prune_index = self.trainer.penalty_index[name]
             model_mask_dict[name].data.view(-1)[prune_index] = 0.0
             weight.data.view(-1)[prune_index] = 0.0
-
             new_nonzero = model_mask_dict[name].sum().item()
+            model_mask_dict[name] = model_mask_dict[name].to(self.device)
             total_nonzero_new += new_nonzero
 
         self.trainer.set_model_mask_dict(model_mask_dict)
@@ -326,15 +342,22 @@ class FedMemAggregator(object):
                 self.aggregate_and_prune(round, training_num)
             elif self.args.pruning == "FedMem":
                 self.grow_and_record_prune_idx(round, training_num)
+            elif self.args.pruning == "FedMem_v2":
+                self.prune_penalty_index()
+                self.grow_and_record_prune_idx(round, training_num)
+
         elif mode == 4:
             if len(self.trainer.penalty_index) > 0:
                 logging.info(f"penalty sum is {self.trainer.calculate_penalty()}")
 
-            if round % self.args.delta_epochs == self.args.transfer_epochs:
-                self.prune()
+            if self.args.pruning == "FedMem":
+                if round % self.args.delta_epochs == self.args.transfer_epochs:
+                    self.prune_penalty_index()
+                if round % self.args.delta_epochs > self.args.transfer_epochs:
+                    assert Exception("Bug here !")
 
-            if round % self.args.delta_epochs > self.args.transfer_epochs:
-                assert Exception("Bug here !")
+            elif self.args.pruning == "FedMem_v2":
+                pass
 
         return averaged_params
 

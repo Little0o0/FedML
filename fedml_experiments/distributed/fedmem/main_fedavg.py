@@ -56,7 +56,7 @@ def add_args(parser):
     parser.add_argument(
         "--partition_method",
         type=str,
-        default="hetero",
+        default="homo",
         metavar="N",
         help="how to partition the dataset on local workers",
     )
@@ -79,7 +79,7 @@ def add_args(parser):
 
     parser.add_argument("--backend", type=str, default="MPI", help="Backend for Server and Client")
 
-    parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|Mag]")
+    parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|FedMem_v2|Mag]")
 
     parser.add_argument("--lr", type=float, default=0.01, metavar="LR", help="learning rate (default: 0.001)")
 
@@ -101,7 +101,7 @@ def add_args(parser):
 
     parser.add_argument("--delta_epochs", type=int, default=20)
 
-    parser.add_argument("--transfer_epochs", type=int, default=18)
+    parser.add_argument("--transfer_epochs", type=int, default=10)
 
     parser.add_argument("--dropit", type=int, default=0)
 

@@ -42,6 +42,7 @@ class MyModelTrainer(ModelTrainer):
     def set_model_mask_dict(self, mask_dict):
         self.mask.mask_dict = mask_dict
         self.mask_dict = self.mask.mask_dict
+        self.mask.to_module_device_()
 
     def get_model_mask_dict(self):
         return self.mask_dict
@@ -71,7 +72,7 @@ class MyModelTrainer(ModelTrainer):
 
     def init_mask(self, args, mask_dict=None):
         # return mask_dict
-        if args.pruning in ["FedTiny", "FedDST", "FedMem", "Mag"]:
+        if args.pruning in ["FedTiny", "FedDST", "FedMem", "FedMem_v2", "Mag"]:
             if self.mask is None:
                 optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
                 self.mask = Masking(
@@ -255,7 +256,7 @@ class MyModelTrainer(ModelTrainer):
                 self.candidate_set = self.get_top_k_grad(train_data,
                             device, self.num_growth, model, args)
 
-        if args.pruning == "FedMem" and args.forgetting_set:
+        if args.pruning in ["FedMem", "FedMem_v2"] and args.forgetting_set:
             forgetting_stats = self.update_forgetting_set(train_data, device, model, args, forgetting_stats)
 
         return forgetting_stats

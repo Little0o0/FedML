@@ -41,7 +41,7 @@ class FedMemTrainer(object):
 
         weights = self.trainer.get_model_params()
         if mode == 2:
-            if self.args.pruning in ["FedTiny", "FedMem"]:
+            if self.args.pruning in ["FedTiny", "FedMem", "FedMem_v2"]:
                 candidate_set = self.trainer.get_model_candidate_set()
             elif self.args.pruning == "FedDST":
                 candidate_set = self.trainer.get_model_mask_dict()
