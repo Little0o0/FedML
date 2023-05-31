@@ -121,7 +121,7 @@ class FedMemAggregator(object):
             self.trainer.penalty_index[name] = \
                     torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
 
-            logging.info(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned, the overall is {mask.numel().item()}")
+            logging.info(f"layer {name} record {len(self.trainer.penalty_index[name])} parameters that need to be pruned, the overall is {mask.numel()}")
             regrowth = sorted(candidate_set[name].items(), key=lambda x: torch.abs(x[1]), reverse=True)[:removed]
             regrowth_index = [x[0] for x in regrowth]
 
