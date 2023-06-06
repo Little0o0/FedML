@@ -169,10 +169,11 @@ class MyModelTrainer(ModelTrainer):
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
                                          weight_decay=args.wd, amsgrad=True)
 
-        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
+        # lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
         lr_scheduler.step(epoch=args.round_idx)
         alpha = lr_scheduler.get_lr()[0]
-        beta = 10e-4
+        beta = args.min_lr
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer

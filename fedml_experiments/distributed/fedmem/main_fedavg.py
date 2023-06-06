@@ -75,13 +75,15 @@ def add_args(parser):
         "--batch_size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )
 
-    parser.add_argument("--client_optimizer", type=str, default="adam", help="SGD with momentum; adam")
+    parser.add_argument("--client_optimizer", type=str, default="sgd", help="SGD with momentum; adam")
 
     parser.add_argument("--backend", type=str, default="MPI", help="Backend for Server and Client")
 
     parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|FedMem_v2|Mag]")
 
-    parser.add_argument("--lr", type=float, default=0.01, metavar="LR", help="learning rate (default: 0.001)")
+    parser.add_argument("--lr", type=float, default=0.1, metavar="LR", help="learning rate (default: 0.001)")
+
+    parser.add_argument("--min_lr", type=float, default=0.001,)
 
     parser.add_argument("--wd", help="weight decay parameter;", type=float, default=0.0001)
 
@@ -419,14 +421,14 @@ def create_model(args, model_name, output_dim):
     elif model_name == "rnn" and args.dataset == "stackoverflow_nwp":
         logging.debug("CNN + stackoverflow_nwp")
         model = RNN_StackOverFlow()
-    elif model_name == "resnet18"   :
+    elif model_name == "resnet18":
         model = resnet18(class_num=output_dim)
     elif model_name == "resnet56":
         model = resnet56(class_num=output_dim)
     elif model_name == "mobilenet":
         model = mobilenet(class_num=output_dim)
     # TODO
-    elif model_name == "mobilenet_v3":
+    elif model_name == "mobilenet":
         """model_mode \in {LARGE: 5.15M, SMALL: 2.94M}"""
         model = MobileNetV3(num_classes=output_dim, model_mode="LARGE")
     elif model_name == "efficientnet":
