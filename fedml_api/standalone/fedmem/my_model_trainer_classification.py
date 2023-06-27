@@ -31,7 +31,7 @@ class MyModelTrainer(ModelTrainer):
         penalty = 0
         with torch.no_grad():
             for name, weight in self.model.named_parameters():
-                if name not in self.penalty_index:
+                if name not in self.penalty_index or len(self.penalty_index[name]) == 0:
                     continue
                 penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=1)
         return penalty
@@ -217,10 +217,15 @@ class MyModelTrainer(ModelTrainer):
                 if mode == 4:
                     penalty = 0
                     for name, weight in self.model.named_parameters():
-                        if name not in self.penalty_index:
+                        if name not in self.penalty_index or len(self.penalty_index[name]) == 0:
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
-                        penalty += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                        try:
+                            penalty += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                        except:
+                            logging.info("######### name is #######", name)
+                            logging.info(self.penalty_index[name])
+                            exit()
                     loss += penalty
 
                     if args.budget_training:

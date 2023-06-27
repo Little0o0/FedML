@@ -76,6 +76,10 @@ class FedMemAggregator(object):
             removed = num_growth[name]
 
             num_zeros = int((mask.numel() - mask.sum()).cpu().item())
+            # if name == "features.15.conv.1.0.weight":
+            #     logging.info(f"features.15.conv.1.0.weight has {len(mask)} parameter")
+            #     logging.info(f"need remove {num_growth[name]} parameter")
+            #     logging.info(f"num of zeros {num_zeros}")
             k = num_zeros + removed
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
             _, old_idx = torch.sort(mask.cpu().flatten())

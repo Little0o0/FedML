@@ -332,6 +332,9 @@ class Masking(object):
         self.remove_type(nn.BatchNorm2d)
         logging.info("Removing 1D batch norms...")
         self.remove_type(nn.BatchNorm1d)
+        logging.info("Removing gains...")
+        self.remove_weight_partial_name("gain")
+
 
         # Call init
         self.init(lottery_mask_path)
@@ -474,11 +477,14 @@ class Masking(object):
 
     def calculate_density(self):
         total_size = 0
-        for name, module in self.module.named_modules():
-            if hasattr(module, "weight"):
-                total_size += module.weight.numel()
-            if getattr(module, "bias", None) is not None:
-                total_size += module.bias.numel()
+        # for name, module in self.module.named_modules():
+        #     if hasattr(module, "weight"):
+        #         total_size += module.weight.numel()
+        #     if getattr(module, "bias", None) is not None:
+        #         total_size += module.bias.numel()
+        for name, weight in self.module.named_parameters():
+            total_size += weight.numel()
+
         logging.info(f"Total Model parameters: {total_size}.")
         total_params = total_size
 
@@ -513,11 +519,17 @@ class Masking(object):
         self.print_nonzero_counts()
 
         total_size = 0
-        for name, module in self.module.named_modules():
-            if hasattr(module, "weight"):
-                total_size += module.weight.numel()
-            if getattr(module, "bias", None) is not None:
-                total_size += module.bias.numel()
+        # for name, module in self.module.named_modules():
+        #     if hasattr(module, "weight"):
+        #         total_size += module.weight.numel()
+        #     if getattr(module, "bias", None) is not None:
+        #         total_size += module.bias.numel()
+        #     if hasattr(module, "gain"):
+        #         total_size += module.gain.numel()
+
+        for name, weight in self.module.named_parameters():
+            total_size += weight.numel()
+
         logging.info(f"Total Model parameters: {total_size}.")
 
         self.stats.total_params = total_size

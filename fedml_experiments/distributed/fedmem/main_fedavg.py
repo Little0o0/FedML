@@ -35,7 +35,6 @@ from fedml_api.model.cv.cnn import CNN_DropOut
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.nlp.rnn import RNN_OriginalFedAvg, RNN_StackOverFlow
 from fedml_api.model.linear.lr import LogisticRegression
-from fedml_api.model.cv.mobilenet_v3 import MobileNetV3
 from fedml_api.model.cv.efficientnet import EfficientNet
 
 from fedml_api.distributed.fedmem.FedMemAPI import FedML_init, FedML_FedAvg_distributed
@@ -101,15 +100,15 @@ def add_args(parser):
 
     parser.add_argument("--gpu_num_per_server", type=int, default=4, help="gpu_num_per_server")
 
-    parser.add_argument("--delta_epochs", type=int, default=20)
+    parser.add_argument("--delta_epochs", type=int, default=10)
 
-    parser.add_argument("--transfer_epochs", type=int, default=10)
+    parser.add_argument("--transfer_epochs", type=int, default=5)
 
-    parser.add_argument("--dropit", type=int, default=0)
+    parser.add_argument("--dropit", type=int, default=1)
 
-    parser.add_argument("--act_scaling", type=int, default=0)
+    parser.add_argument("--act_scaling", type=int, default=1)
 
-    parser.add_argument("--forgetting_set", type=int, default=0,
+    parser.add_argument("--forgetting_set", type=int, default=1,
                         help="whether create forgetting set")
 
     parser.add_argument("--budget_training", type=int, default=1,
@@ -117,14 +116,14 @@ def add_args(parser):
 
     parser.add_argument("--density", type=float, default=0.1)
 
-    parser.add_argument("--budget_scaling", type=float, default=0.01)
+    parser.add_argument("--budget_scaling", type=float, default=0.1)
 
     parser.add_argument("--adjust_rate", type=float, default=0.1)
 
-    parser.add_argument("--init_sparse", type=str, default="erdos-renyi-magnitude",
-                        help="[erdos-renyi-magnitude|uniform-magnitude|noise-erdos-renyi-magnitude-kernel|noise-uniform-magnitude|noise-erdos-renyi-magnitude]")
+    parser.add_argument("--init_sparse", type=str, default="erdos-renyi-kernel",
+                        help="[erdos-renyi|uniform-magnitude|erdos-renyi-kernel]")
 
-    parser.add_argument("--NoBN", type=int, default=0)
+    parser.add_argument("--NoBN", type=int, default=1)
 
     parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
@@ -393,10 +392,18 @@ def create_model(args, model_name, output_dim):
     if args.NoBN:
         if args.act_scaling:
             from fedml_api.model.cv.resnet_bnfree import nf_resnet18 as resnet18
+            from fedml_api.model.cv.mobilenetv2_bnfree import nf_mobilenet_v2 as mobilenet_v2
+            from fedml_api.model.cv.mobilenet_v3_bnfree import MobileNetV3
+
         else:
             from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
+            from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
+            from fedml_api.model.cv.mobilenet_v3_NoBN import MobileNetV3
     else:
         from fedml_api.model.cv.resnet import resnet18, resnet56
+        from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
+        from fedml_api.model.cv.mobilenet_v3 import MobileNetV3
+
 
     logging.debug("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
     model = None
@@ -428,9 +435,11 @@ def create_model(args, model_name, output_dim):
     elif model_name == "mobilenet":
         model = mobilenet(class_num=output_dim)
     # TODO
-    elif model_name == "mobilenet":
+    elif model_name == "mobilenetv3":
         """model_mode \in {LARGE: 5.15M, SMALL: 2.94M}"""
         model = MobileNetV3(num_classes=output_dim, model_mode="LARGE")
+    elif model_name == "mobilenetv2":
+        model = mobilenet_v2(num_classes=output_dim)
     elif model_name == "efficientnet":
         model = EfficientNet()
 
