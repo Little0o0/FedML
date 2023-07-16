@@ -325,9 +325,8 @@ class FedMemAggregator(object):
         # logging.info("################aggregate: %d" % len(model_list))
         (num0, averaged_params) = model_list[0]
         for k in averaged_params.keys():
-            if "mask" in k:
+            if mode != 0 and "mask" in k:
                 continue
-
             for i in range(0, len(model_list)):
                 local_sample_number, local_model_params = model_list[i]
                 w = local_sample_number / training_num

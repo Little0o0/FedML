@@ -230,7 +230,6 @@ class Masking(object):
         # logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
 
 
-
     def generate_mask_only(self, module, lottery_mask_path: "Path" = None):
         self.module = module
         # logging.info(f"Dense FLOPs {self.dense_FLOPs:,}")

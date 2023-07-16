@@ -80,7 +80,7 @@ def add_args(parser):
 
     parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|FedMem_v2|Mag]")
 
-    parser.add_argument("--lr", type=float, default=0.1, metavar="LR", help="learning rate (default: 0.001)")
+    parser.add_argument("--lr", type=float, default=0.01, metavar="LR", help="learning rate (default: 0.001)")
 
     parser.add_argument("--min_lr", type=float, default=0.001,)
 
@@ -106,19 +106,19 @@ def add_args(parser):
 
     parser.add_argument("--dropit", type=int, default=1)
 
-    parser.add_argument("--act_scaling", type=int, default=1)
+    parser.add_argument("--act_scaling", type=int, default=0)
 
-    parser.add_argument("--forgetting_set", type=int, default=1,
+    parser.add_argument("--forgetting_set", type=int, default=0,
                         help="whether create forgetting set")
 
-    parser.add_argument("--budget_training", type=int, default=1,
+    parser.add_argument("--budget_training", type=int, default=0,
                         help="whether activate budget training")
 
     parser.add_argument("--density", type=float, default=0.1)
 
     parser.add_argument("--budget_scaling", type=float, default=0.1)
 
-    parser.add_argument("--adjust_rate", type=float, default=0.1)
+    parser.add_argument("--adjust_rate", type=float, default=0.3)
 
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-kernel",
                         help="[erdos-renyi|uniform-magnitude|erdos-renyi-kernel]")
@@ -486,7 +486,7 @@ if __name__ == "__main__":
     # initialize the wandb machine learning experimental tracking platform (https://www.wandb.com/).
     if process_id == 0:
         wandb.init(
-            project="AAAI",
+            project="FedDual",
             name="Pruning-"
             + str(args.pruning),
             config=args,

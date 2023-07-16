@@ -303,6 +303,11 @@ class MyModelTrainer(ModelTrainer):
                 x = x.to(device)
                 target = target.to(device)
                 pred = model(x)
+                # if batch_idx == 0:
+                #     logging.info("input is ")
+                #     logging.info(x[0])
+                #     logging.info("prediction")
+                #     logging.info(pred[0])
                 loss = criterion(pred, target)
 
                 _, predicted = torch.max(pred, -1)

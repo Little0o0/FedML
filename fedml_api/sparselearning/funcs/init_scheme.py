@@ -153,15 +153,14 @@ def erdos_renyi_init(masking: "Masking", is_kernel: bool = True, **kwargs):
     prob_dict = get_erdos_renyi_dist(masking, is_kernel)
 
     for name, weight in masking.module.named_parameters():
+
         if name not in masking.mask_dict:
             continue
         prob = prob_dict[name]
-        logging.debug(f"ERK {name}: {weight.shape} prob {prob:.4f}")
-
+        logging.info(f"ERK {name}: {weight.shape} prob {prob:.4f}")
         masking.mask_dict[name] = (torch.rand(weight.shape) < prob).float().data
         masking.baseline_nonzero += (masking.mask_dict[name] != 0).sum().int().item()
         masking.total_params += weight.numel()
-
 
 def lottery_ticket_init(
     masking: "Masking", lottery_mask_path: "Path", shuffle: bool = False
@@ -386,8 +385,8 @@ def magnitude(masking: "Masking"):
 registry = {
     "noise-erdos-renyi-magnitude": partial(erdos_renyi_magnitude, is_noise=True, is_kernel=False),
     "magnitude": magnitude,
-    "noise-uniform-magnitude":partial(uniform_magnitude, is_noise=True),
-    "uniform-magnitude":partial(uniform_magnitude, is_noise=False),
+    "noise-uniform-magnitude": partial(uniform_magnitude, is_noise=True),
+    "uniform-magnitude": partial(uniform_magnitude, is_noise=False),
     "erdos-renyi-magnitude": partial(erdos_renyi_magnitude, is_noise=False, is_kernel=False),
     "noise-erdos-renyi-magnitude-kernel": partial(erdos_renyi_magnitude, is_noise=True, is_kernel=True),
 

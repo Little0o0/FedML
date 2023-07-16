@@ -8,7 +8,11 @@ EPOCH=$5
 DATASET=$6
 DATA_DIR=$7
 PRUNE=$8
-DROPIT=$9
+BUDGET=$9
+FORGET=${10}
+ACT=${11}
+DROPIT=${12}
+
 
 PROCESS_NUM=`expr $WORKER_NUM + 1`
 echo $PROCESS_NUM
@@ -26,4 +30,7 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --comm_round $ROUND \
   --epochs $EPOCH \
   --pruning $PRUNE \
+  --forgetting_set $FORGET \
+  --act_scaling $ACT \
+  --budget_training $BUDGET \
   --dropit $DROPIT
