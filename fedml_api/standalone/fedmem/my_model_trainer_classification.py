@@ -251,7 +251,7 @@ class MyModelTrainer(ModelTrainer):
                 assert len(forgetting_stats) == len(train_data.dataset)
 
             if args.forgetting_set:
-                p = int(0.1 * len(forgetting_stats))
+                p = int(args.forgetting_ratio * len(forgetting_stats))
                 idx = np.argsort(forgetting_stats)[::-1][:p]
                 forgetting_dataset = torch.utils.data.Subset(train_data.dataset, idx)
                 forgetting_data = data.DataLoader(dataset=forgetting_dataset,

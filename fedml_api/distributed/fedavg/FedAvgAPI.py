@@ -5,9 +5,9 @@ from .FedAVGTrainer import FedAVGTrainer
 from .FedAvgClientManager import FedAVGClientManager
 from .FedAvgServerManager import FedAVGServerManager
 
-from fedml_api.standalone.fedmem.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
-from ...standalone.fedmem.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
-from ...standalone.fedmem.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
+from fedml_api.standalone.fedavg.my_model_trainer_classification import MyModelTrainer as MyModelTrainerCLS
+from ...standalone.fedavg.my_model_trainer_nwp import MyModelTrainer as MyModelTrainerNWP
+from ...standalone.fedavg.my_model_trainer_tag_prediction import MyModelTrainer as MyModelTrainerTAG
 
 
 def FedML_init():

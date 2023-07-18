@@ -1,3 +1,6 @@
+import torch
+import torch.nn as nn
+import logging
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer

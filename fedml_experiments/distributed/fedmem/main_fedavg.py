@@ -111,12 +111,15 @@ def add_args(parser):
     parser.add_argument("--forgetting_set", type=int, default=0,
                         help="whether create forgetting set")
 
+    parser.add_argument("--forgetting_ratio", type=float, default=0.3,
+                        help="the forgetting set ratio")
+
     parser.add_argument("--budget_training", type=int, default=0,
                         help="whether activate budget training")
 
     parser.add_argument("--density", type=float, default=0.1)
 
-    parser.add_argument("--budget_scaling", type=float, default=0.1)
+    parser.add_argument("--budget_scaling", type=float, default=0.3)
 
     parser.add_argument("--adjust_rate", type=float, default=0.3)
 

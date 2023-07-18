@@ -32,7 +32,8 @@ from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_dat
 from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
 
 from fedml_api.model.cv.cnn import CNN_DropOut
-from fedml_api.model.cv.resnet_gn import resnet18
+# from fedml_api.model.cv.resnet_gn import
+from fedml_api.model.cv.resnet_NoBN import resnet18
 from fedml_api.model.cv.mobilenet import mobilenet
 from fedml_api.model.cv.resnet import resnet56
 from fedml_api.model.nlp.rnn import RNN_OriginalFedAvg, RNN_StackOverFlow
@@ -363,9 +364,12 @@ def create_model(args, model_name, output_dim):
     elif model_name == "cnn" and args.dataset == "femnist":
         logging.info("CNN + FederatedEMNIST")
         model = CNN_DropOut(False)
-    elif model_name == "resnet18_gn" and args.dataset == "fed_cifar100":
-        logging.info("ResNet18_GN + Federated_CIFAR100")
-        model = resnet18()
+    elif model_name == "resnet18":
+        model = resnet18(class_num=output_dim)
+    # elif model_name == "resnet18_gn" and args.dataset == "fed_cifar100":
+    #     logging.info("ResNet18_GN + Federated_CIFAR100")
+    #     model = resnet18()
+
     elif model_name == "rnn" and args.dataset == "fed_shakespeare":
         logging.info("RNN + fed_shakespeare")
         model = RNN_OriginalFedAvg()
@@ -430,7 +434,7 @@ if __name__ == "__main__":
     if process_id == 0:
         wandb.init(
             # project="federated_nas",
-            project="fedml",
+            project="AAAI",
             name="FedAVG(d)"
             + str(args.partition_method)
             + "r"
