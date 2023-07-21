@@ -14,7 +14,6 @@ except ImportError:
     from FedML.fedml_core.trainer.model_trainer import ModelTrainer
     from FedML.fedml_api.sparselearning.core import Masking
     from FedML.fedml_api.sparselearning.funcs.decay import CosineDecay
-
 class MyModelTrainer(ModelTrainer):
     def __init__(self, model, args=None):
         super().__init__(model=model, args=args)

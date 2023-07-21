@@ -240,10 +240,13 @@ class Masking(object):
         # Remove bias, batchnorms
         logging.info("Removing biases...")
         self.remove_weight_partial_name("bias")
+        logging.info("Removing LayerNorm...")
+        self.remove_weight_partial_name("ln")
         logging.info("Removing 2D batch norms...")
         self.remove_type(nn.BatchNorm2d)
         logging.info("Removing 1D batch norms...")
         self.remove_type(nn.BatchNorm1d)
+
 
         self.init_mask_only(lottery_mask_path)
         # logging.info(f"Inference (Sparse) FLOPs (at init) {self.inference_FLOPs:,}")
@@ -327,6 +330,8 @@ class Masking(object):
         # Remove bias, batchnorms
         logging.info("Removing biases...")
         self.remove_weight_partial_name("bias")
+        logging.info("Removing LayerNorm...")
+        self.remove_weight_partial_name("ln")
         logging.info("Removing 2D batch norms...")
         self.remove_type(nn.BatchNorm2d)
         logging.info("Removing 1D batch norms...")

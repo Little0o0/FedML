@@ -399,9 +399,10 @@ def create_model(args, model_name, output_dim):
             from fedml_api.model.cv.mobilenet_v3_bnfree import MobileNetV3
 
         else:
-            from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
-            from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
-            from fedml_api.model.cv.mobilenet_v3_NoBN import MobileNetV3
+            from fedml_api.model.cv.resnet_LN import resnet18, resnet56
+            # from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
+            # from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
+            # from fedml_api.model.cv.mobilenet_v3_NoBN import MobileNetV3
     else:
         from fedml_api.model.cv.resnet import resnet18, resnet56
         from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
