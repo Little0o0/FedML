@@ -185,10 +185,12 @@ class MyModelTrainer(ModelTrainer):
                     self.get_top_k_grad(train_data, device, self.num_growth, model, args)
 
                 for name, weight in model.named_parameters():
-                    if name not in self.mask_dict or name not in topk_grad:
+                    if name not in self.mask_dict or len(self.mask_dict[name]) == 0 or name not in topk_grad:
                         continue
                     mask = self.mask_dict[name]
                     removed = self.num_growth[name]
+                    if removed == 0:
+                        continue
                     regrowth_index = [x[0] for x in topk_grad[name]]
                     assert removed == len(regrowth_index)
                     num_zeros = int((mask.numel() - mask.sum()).cpu().item())
@@ -197,11 +199,10 @@ class MyModelTrainer(ModelTrainer):
                     _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
                     _, old_idx = torch.sort(mask.cpu().flatten())
                     prune_index = torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
-
                     self.mask_dict[name].data.view(-1)[regrowth_index] = 1.0
                     weight.data.view(-1)[regrowth_index] = 0.0
-
                     self.mask_dict[name].data.view(-1)[prune_index] = 0.0
+
                     weight.data.view(-1)[prune_index] = 0.0
 
                 self.mask.mask_dict = self.mask_dict

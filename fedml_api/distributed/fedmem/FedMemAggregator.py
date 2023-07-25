@@ -70,7 +70,7 @@ class FedMemAggregator(object):
         model_mask_dict = self.trainer.get_model_mask_dict()
         num_growth = self.trainer.get_num_growth()
         for name, weight in model_mask.module.named_parameters():
-            if name not in model_mask_dict:
+            if name not in model_mask_dict or len(model_mask_dict[name]) == 0:
                 continue
             mask = model_mask_dict[name]
             removed = num_growth[name]
@@ -205,13 +205,23 @@ class FedMemAggregator(object):
                 else:
                     new_mask_dict[name] = torch.logical_or(new_mask_dict[name],
                                 self.model_candidate_dict[idx][name].to(self.device)).float()
+
+        # for name in  self.model_candidate_dict[0]:
+        #     logging.info(name)
+        #     logging.info("before agg")
+        #     logging.info(torch.sum(new_mask_dict[name]))
+        #     logging.info(torch.sum(self.model_candidate_dict[0][name]))
+        #     logging.info("all")
+        #     logging.info(torch.numel(new_mask_dict[name]))
+
         num_remove = dict()
         for name, mask in self.trainer.get_model_mask_dict().items():
-            num_remove[name] = int(torch.sum(new_mask_dict[name]).item() - torch.sum(mask).item())
+            num_remove[name] = int((torch.sum(new_mask_dict[name]) -
+                            torch.sum(self.model_candidate_dict[0][name])).item())
 
         total_nonzero_new = 0
         for name, weight in model_mask.module.named_parameters():
-            if name not in num_remove:
+            if name not in num_remove or num_remove[name] == 0 or len(new_mask_dict[name]) == 0:
                 continue
 
             removed = num_remove[name]
@@ -221,7 +231,13 @@ class FedMemAggregator(object):
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
             _, old_idx = torch.sort(mask.cpu().flatten())
             prune_index = torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+            # if logging.info(len(prune_index) == 0):
+            #     logging.info(name)
+            #     logging.info(removed)
+            #     logging.info(num_zeros)
+            #     continue
             new_mask_dict[name].data.view(-1)[prune_index] = 0.0
+
             new_nonzero = new_mask_dict[name].sum().item()
             total_nonzero_new += new_nonzero
 
@@ -273,7 +289,7 @@ class FedMemAggregator(object):
         num_growth = self.trainer.get_num_growth()
         total_nonzero_new = 0
         for name, weight in model_mask.module.named_parameters():
-            if name not in model_mask_dict or name not in candidate_set:
+            if name not in model_mask_dict or name not in candidate_set or len(model_mask_dict[name]) == 0:
                 continue
             mask = model_mask_dict[name]
             new_mask = model_mask.prune_func(model_mask, mask, weight, name)
