@@ -94,7 +94,7 @@ def add_args(parser):
         "--is_mobile", type=int, default=1, help="whether the program is running on the FedML-Mobile server side"
     )
 
-    parser.add_argument("--frequency_of_the_test", type=int, default=1, help="the frequency of the algorithms")
+    parser.add_argument("--frequency_of_the_test", type=int, default=10, help="the frequency of the algorithms")
 
     parser.add_argument("--gpu_server_num", type=int, default=1, help="gpu_server_num")
 
@@ -119,7 +119,7 @@ def add_args(parser):
 
     parser.add_argument("--density", type=float, default=0.1)
 
-    parser.add_argument("--budget_scaling", type=float, default=0.3)
+    parser.add_argument("--budget_scaling", type=float, default=0.1)
 
     parser.add_argument("--adjust_rate", type=float, default=0.3)
 
@@ -131,7 +131,7 @@ def add_args(parser):
     parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
 
-    parser.add_argument("--p", type=float, default=1.0,
+    parser.add_argument("--p", type=float, default=2.0,
             help="penalty value for self-transfer learning")
 
     parser.add_argument("--T_max", type=int, default=300)

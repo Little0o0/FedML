@@ -410,7 +410,7 @@ class FedMemAggregator(object):
         if self.trainer.test_on_the_server(self.train_data_local_dict, self.test_data_local_dict, self.device, self.args):
             return
 
-        if round_idx % self.args.frequency_of_the_test == 0 or round_idx == self.args.comm_round - 1:
+        if round_idx % self.args.frequency_of_the_test == 0 or round_idx >= self.args.comm_round - 10:
             logging.info("################test_on_server_for_all_clients : {}".format(round_idx))
             # train_num_samples = []
             # train_tot_corrects = []
