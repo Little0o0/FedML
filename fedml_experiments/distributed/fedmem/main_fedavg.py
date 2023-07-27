@@ -119,7 +119,7 @@ def add_args(parser):
 
     parser.add_argument("--density", type=float, default=0.1)
 
-    parser.add_argument("--budget_scaling", type=float, default=0.1)
+    parser.add_argument("--budget_scaling", type=float, default=1.)
 
     parser.add_argument("--adjust_rate", type=float, default=0.3)
 
@@ -530,7 +530,7 @@ if __name__ == "__main__":
     model = create_model(args, model_name=args.model, output_dim=dataset[7])
 
     if args.dropit:
-        to_dropit(model, strategy='mink', gamma=0.9, autocast=True)
+        to_dropit(model, strategy='avgk', gamma=0.9, autocast=True)
 
     # start distributed training
     FedML_FedAvg_distributed(

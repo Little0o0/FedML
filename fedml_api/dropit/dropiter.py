@@ -31,6 +31,49 @@ class DropITer(object):
 
     # --- VRANDOM ---
 
+
+    def select_avgk(self, x: torch.Tensor, ctx=None):
+        numel = x.numel()
+        x = x.view(-1)
+        mean_val = x.mean()
+        idxs = (x-mean_val).abs().topk(int(numel * self.reserve), sorted=False)[1]
+        x = x[idxs]
+        x.dropped = True
+        ctx.idxs = idxs.to(torch.int32)
+        ctx.numel = numel
+        ctx.mean_val = mean_val
+        return x
+
+    def pad_avgk(self, x, ctx=None):
+        idxs = ctx.idxs.to(torch.int64)
+        mean_val = ctx.mean_val
+        del ctx.idxs
+        return ( mean_val*torch.ones(
+            ctx.numel, device=x.device, dtype=x.dtype
+        )).scatter_(0, idxs, x)
+
+
+    def select_avgk_cpuidx(self, x: torch.Tensor, ctx=None):
+        numel = x.numel()
+        x = x.view(-1)
+        mean_val = x.mean()
+        idxs = (x - mean_val).abs().topk(int(numel * self.reserve), sorted=False)[1]
+        x = x[idxs]
+        x.dropped = True  # provide a flag for act judges
+        ctx.idxs = idxs.cpu()
+        ctx.numel = numel
+        ctx.mean_val = mean_val
+        return x
+
+    def pad_avgk_cpuidx(self, x, ctx=None):
+        idxs = ctx.idxs.to(x.device)
+        mean_val = ctx.mean_val
+        del ctx.idxs
+        return (mean_val*torch.ones(
+            ctx.numel, device=x.device, dtype=x.dtype
+        )).scatter_(0, idxs, x)
+
+
     # --- MINK ---
     def select_mink(self, x: torch.Tensor, ctx=None):
         numel = x.numel()
