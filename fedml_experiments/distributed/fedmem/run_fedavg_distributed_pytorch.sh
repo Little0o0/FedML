@@ -13,6 +13,7 @@ BUDGET=${10}
 FORGET=${11}
 ACT=${12}
 DROPIT=${13}
+BATCH=${14}
 
 
 PROCESS_NUM=`expr $WORKER_NUM + 1`
@@ -35,4 +36,5 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --forgetting_set $FORGET \
   --act_scaling $ACT \
   --budget_training $BUDGET \
-  --dropit $DROPIT
+  --dropit $DROPIT \
+  --batch_size $BATCH
