@@ -31,6 +31,7 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --comm_round $ROUND \
   --epochs $EPOCH \
   --pruning $PRUNE \
+  --density $DENSITY \
   --forgetting_set $FORGET \
   --act_scaling $ACT \
   --budget_training $BUDGET \
