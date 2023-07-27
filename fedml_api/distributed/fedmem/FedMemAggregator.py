@@ -163,11 +163,17 @@ class FedMemAggregator(object):
         model_mask_dict = self.trainer.get_model_mask_dict()
         total_nonzero_new = 0
         for name, weight in model_mask.module.named_parameters():
-            if name not in model_mask_dict or name not in self.trainer.penalty_index:
+            if name not in model_mask_dict or \
+                    name not in self.trainer.penalty_index or \
+                    len(self.trainer.penalty_index[name]) == 0:
                 continue
 
             prune_index = self.trainer.penalty_index[name]
-            model_mask_dict[name].data.view(-1)[prune_index] = 0.0
+            try:
+                model_mask_dict[name].data.view(-1)[prune_index] = 0.0
+            except:
+                logging.info("######" + name+ "############")
+                logging.info(prune_index)
             weight.data.view(-1)[prune_index] = 0.0
             new_nonzero = model_mask_dict[name].sum().item()
             model_mask_dict[name] = model_mask_dict[name].to(self.device)

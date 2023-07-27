@@ -80,7 +80,7 @@ def add_args(parser):
 
     parser.add_argument("--pruning", type=str, default="None", help="[None|FedTiny|FedDST|FedMem|FedMem_v2|Mag]")
 
-    parser.add_argument("--lr", type=float, default=0.01, metavar="LR", help="learning rate (default: 0.001)")
+    parser.add_argument("--lr", type=float, default=0.1, metavar="LR", help="learning rate (default: 0.1)")
 
     parser.add_argument("--min_lr", type=float, default=0.001,)
 
@@ -126,7 +126,7 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-kernel",
                         help="[erdos-renyi|uniform-magnitude|erdos-renyi-kernel]")
 
-    parser.add_argument("--NoBN", type=int, default=1)
+    parser.add_argument("--NoBN", type=int, default=0)
 
     parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")

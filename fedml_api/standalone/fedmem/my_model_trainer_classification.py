@@ -169,7 +169,7 @@ class MyModelTrainer(ModelTrainer):
                                          weight_decay=args.wd, amsgrad=True)
 
         # lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.95)
         lr_scheduler.step(epoch=args.round_idx)
         alpha = lr_scheduler.get_lr()[0]
         beta = args.min_lr
