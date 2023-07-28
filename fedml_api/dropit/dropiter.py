@@ -31,6 +31,65 @@ class DropITer(object):
 
     # --- VRANDOM ---
 
+    def select_midk(self, x: torch.Tensor, ctx=None):
+        numel = x.numel()
+        x = x.view(-1)
+        sorted_x, sorted_idx = x.sort()
+        k = int(numel * self.gamma)
+        mid = len(sorted_x)//2
+        median = sorted_x[mid]
+        idxs =torch.cat((sorted_idx[:mid-k//2],sorted_idx[mid+k//2:]))
+        x = x[idxs]
+        x.dropped = True
+        ctx.idxs = idxs.to(torch.int32)
+        ctx.numel = numel
+        ctx.median = median
+        return x
+
+    def pad_midk(self, x, ctx=None):
+        idxs = ctx.idxs.to(torch.int64)
+        median = ctx.median
+        del ctx.idxs
+        return ( median*torch.ones(
+            ctx.numel, device=x.device, dtype=x.dtype
+        )).scatter_(0, idxs, x)
+
+    def select_denk(self, x: torch.Tensor, ctx=None):
+        numel = x.numel()
+        x = x.view(-1)
+        sorted_x, sorted_idx = x.sort()
+        k = int(numel * self.gamma)
+        min_diff, min_idx = 9999, k
+        min_mean = 0
+        for i in range(k, len(sorted_x)+1):
+            if sorted_x[i-1] - sorted_x[i-k] < min_diff:
+                min_diff = sorted_x[i-1] - sorted_x[i-k]
+                min_mean = sorted_x[i-k:i].mean()
+                min_idx = i-k
+        idxs =torch.cat((sorted_idx[:min_idx],sorted_idx[min_idx+k:]))
+        x = x[idxs]
+        x.dropped = True
+        ctx.idxs = idxs.to(torch.int32)
+        ctx.numel = numel
+        ctx.mean_val = min_mean
+        return x
+
+    def pad_denk(self, x, ctx=None):
+        idxs = ctx.idxs.to(torch.int64)
+        mean_val = ctx.mean_val
+        del ctx.idxs
+        return ( mean_val*torch.ones(
+            ctx.numel, device=x.device, dtype=x.dtype
+        )).scatter_(0, idxs, x)
+
+    def pad_avgk(self, x, ctx=None):
+        idxs = ctx.idxs.to(torch.int64)
+        mean_val = ctx.mean_val
+        del ctx.idxs
+        return ( mean_val*torch.ones(
+            ctx.numel, device=x.device, dtype=x.dtype
+        )).scatter_(0, idxs, x)
+
 
     def select_avgk(self, x: torch.Tensor, ctx=None):
         numel = x.numel()
