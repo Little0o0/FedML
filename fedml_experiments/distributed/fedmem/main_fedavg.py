@@ -94,7 +94,7 @@ def add_args(parser):
         "--is_mobile", type=int, default=1, help="whether the program is running on the FedML-Mobile server side"
     )
 
-    parser.add_argument("--frequency_of_the_test", type=int, default=10, help="the frequency of the algorithms")
+    parser.add_argument("--frequency_of_the_test", type=int, default=1, help="the frequency of the algorithms")
 
     parser.add_argument("--gpu_server_num", type=int, default=1, help="gpu_server_num")
 
@@ -128,7 +128,7 @@ def add_args(parser):
 
     parser.add_argument("--NoBN", type=int, default=0)
 
-    parser.add_argument("--lam", type=float, default=0.1,
+    parser.add_argument("--lam", type=float, default=0.01,
             help="lambda control the self-transfer learning")
 
     parser.add_argument("--p", type=float, default=2.0,
@@ -530,7 +530,7 @@ if __name__ == "__main__":
     model = create_model(args, model_name=args.model, output_dim=dataset[7])
 
     if args.dropit:
-        to_dropit(model, strategy='mink', gamma=0.7, autocast=True)
+        to_dropit(model, strategy='avgk', gamma=0.7, autocast=True)
 
     # start distributed training
     FedML_FedAvg_distributed(

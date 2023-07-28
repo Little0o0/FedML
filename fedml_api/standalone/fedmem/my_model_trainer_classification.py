@@ -221,12 +221,12 @@ class MyModelTrainer(ModelTrainer):
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
                         try:
-                            penalty += args.lam * torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                            penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
                         except:
                             logging.info("######### name is #######", name)
                             logging.info(self.penalty_index[name])
                             exit()
-                    loss += penalty
+                    loss += args.lam * penalty
 
                     if args.budget_training:
                         p = 1 - (args.round_idx % args.transfer_epochs + 1)/ args.transfer_epochs
