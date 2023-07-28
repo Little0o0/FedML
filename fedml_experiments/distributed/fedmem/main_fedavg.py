@@ -530,7 +530,7 @@ if __name__ == "__main__":
     model = create_model(args, model_name=args.model, output_dim=dataset[7])
 
     if args.dropit:
-        to_dropit(model, strategy='avgk', gamma=0.7, autocast=True)
+        to_dropit(model, strategy='midk', gamma=0.7, autocast=True)
 
     # start distributed training
     FedML_FedAvg_distributed(

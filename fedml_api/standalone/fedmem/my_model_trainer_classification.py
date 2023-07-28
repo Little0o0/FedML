@@ -232,7 +232,7 @@ class MyModelTrainer(ModelTrainer):
                         p = 1 - (args.round_idx % args.transfer_epochs + 1)/ args.transfer_epochs
                         beta = args.budget_scaling * p * torch.sigmoid(penalty.cpu()).item()
 
-                lr = max(alpha, beta)
+                lr = min(max(alpha, beta), 0.1)
                 # logging.info(f"budgeted aware learnin rate is {lr}")
                 for param_group in optimizer.param_groups:
                     param_group["lr"] = lr
