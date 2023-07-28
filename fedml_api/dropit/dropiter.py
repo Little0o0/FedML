@@ -8,7 +8,7 @@ from .conv2d import forward as conv2d_forward
 from .gpt2conv1d import forward as gpt2conv1d_forward
 
 supports = {
-    nn.Linear: linear_forward,
+    # nn.Linear: linear_forward,
     nn.Conv2d: conv2d_forward,
     # transformers.pytorch_utils.Conv1D: gpt2conv1d_forward
 }
