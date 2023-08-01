@@ -11,7 +11,7 @@ PRUNE=$8
 DENSITY=$9
 BUDGET=${10}
 FORGET=${11}
-ACT=${12}
+NOBN=${12}
 DROPIT=${13}
 BATCH=${14}
 
@@ -34,7 +34,7 @@ mpirun -np $PROCESS_NUM -hostfile ./mpi_host_file python3 ./main_fedavg.py \
   --pruning $PRUNE \
   --density $DENSITY \
   --forgetting_set $FORGET \
-  --act_scaling $ACT \
+  --NoBN $NOBN \
   --budget_training $BUDGET \
   --dropit $DROPIT \
   --batch_size $BATCH

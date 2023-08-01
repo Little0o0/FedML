@@ -51,7 +51,12 @@ class MyModelTrainer(ModelTrainer):
 
     def get_model_params(self):
         params = self.model.cpu().state_dict()
-        return {key: params[key] for key in params.keys() if "mask" not in key}
+        keys = []
+        for key in params.keys():
+            # if "mask" not in key and "bn" not in key:
+            if "mask" not in key:
+                keys.append(key)
+        return {key: params[key] for key in keys}
 
     def set_model_params(self, model_parameters):
         self.model.load_state_dict(model_parameters, strict=False)

@@ -250,10 +250,23 @@ class WSConv2D(nn.Conv2d):
 
     def standardized_weights(self):
         # Original code: HWCN
+        B, H, W, C = self.weight.shape
+        mask = self.weight != 0.
+        # method 1: normalize non-zero element
+        # sparse_mean = torch.sum(self.weight, axis=[1,2,3], keepdims=True)/torch.sum(mask, axis=[1,2,3], keepdims=True)
+        # sparse_mse = torch.sum( (self.weight - sparse_mean)**2 * mask , axis=[1,2,3], keepdims=True)
+        # sparse_var = sparse_mse/(torch.sum(mask, axis=[1,2,3], keepdims=True) - 1)
+        # sparse_scale = torch.rsqrt(torch.maximum(sparse_var * self.fan_in, self.eps))
+        # output = (self.weight - sparse_mean) * sparse_scale * self.gain
+
+        # method 2: normalize all element and multipy the mask
         mean = torch.mean(self.weight, axis=[1,2,3], keepdims=True)
         var = torch.var(self.weight, axis=[1,2,3], keepdims=True)
         scale = torch.rsqrt(torch.maximum(var * self.fan_in, self.eps))
-        return (self.weight - mean) * scale * self.gain
+        output = (self.weight - mean) * scale * self.gain
+
+        output = output * mask
+        return output
         
     def forward(self, x):
         return F.conv2d(
