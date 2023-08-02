@@ -26,6 +26,7 @@ from fedml_api.data_preprocessing.stackoverflow_nwp.data_loader import load_part
 from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
 from fedml_api.data_preprocessing.ImageNet.data_loader import load_partition_data_ImageNet
 from fedml_api.data_preprocessing.Landmarks.data_loader import load_partition_data_landmarks
+from fedml_api.data_preprocessing.tiny_imagenet.data_loader import load_partition_data_tiny
 
 from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
 from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
@@ -128,7 +129,7 @@ def add_args(parser):
 
     parser.add_argument("--NoBN", type=int, default=1)
 
-    parser.add_argument("--lam", type=float, default=0.01,
+    parser.add_argument("--lam", type=float, default=1.,
             help="lambda control the self-transfer learning")
 
     parser.add_argument("--p", type=float, default=2.0,
@@ -350,6 +351,13 @@ def load_data(args, dataset_name):
             batch_size=args.batch_size,
         )
 
+    elif dataset_name == "tinyimagenet":
+
+        train_data_num, test_data_num, train_data_global, test_data_global, \
+            train_data_local_num_dict, train_data_local_dict, test_data_local_dict, \
+            class_num = load_partition_data_tiny(args.data_dir, args.partition_method,
+                                                 args.partition_alpha, args.client_num_in_total,
+                                                 args.batch_size)
     else:
         if dataset_name == "cifar10":
             data_loader = load_partition_data_cifar10
@@ -357,6 +365,7 @@ def load_data(args, dataset_name):
             data_loader = load_partition_data_cifar100
         elif dataset_name == "cinic10":
             data_loader = load_partition_data_cinic10
+
         else:
             data_loader = load_partition_data_cifar10
 

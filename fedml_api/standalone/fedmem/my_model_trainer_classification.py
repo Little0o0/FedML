@@ -22,6 +22,7 @@ class MyModelTrainer(ModelTrainer):
         self.candidate_set = dict()
         self.num_growth = dict()
         self.penalty_index = dict()
+        self.lam = 0
 
     def get_num_growth(self):
         return self.num_growth
@@ -178,6 +179,7 @@ class MyModelTrainer(ModelTrainer):
         lr_scheduler.step(epoch=args.round_idx)
         alpha = lr_scheduler.get_lr()[0]
         beta = args.min_lr
+        # lam = 0
 
         if mode in [1, 2, 3, 4]:
             self.mask.optimizer = optimizer
@@ -218,27 +220,34 @@ class MyModelTrainer(ModelTrainer):
                 model.zero_grad()
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
+                self.lam = min(self.lam + 0.00002, args.lam)
 
                 if mode == 4:
-                    penalty = 0
+                    penalty, num_layer = 0, 0
                     for name, weight in self.model.named_parameters():
-                        if name not in self.penalty_index or len(self.penalty_index[name]) == 0:
+                        if name not in self.penalty_index or \
+                                "conv" not in name or \
+                                 len(self.penalty_index[name]) == 0:
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
                         try:
                             penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                            num_layer += 1
                         except:
                             logging.info("######### name is #######", name)
                             logging.info(self.penalty_index[name])
                             exit()
-                    loss += args.lam * penalty
+
+                    p = 1 - (args.round_idx % args.comm_round + 1) / args.comm_round
+                    rate = (torch.sigmoid(penalty.cpu() / num_layer).item() - 0.5) * 2
+                    # lam = max(p * rate, args.lam)
+                    loss += self.lam * penalty
 
                     if args.budget_training:
-                        p = 1 - (args.round_idx % args.transfer_epochs + 1)/ args.transfer_epochs
-                        beta = args.budget_scaling * p * torch.sigmoid(penalty.cpu()).item()
+                        beta = p * rate * args.lr
 
                 lr = min(max(alpha, beta), 0.1)
-                # logging.info(f"budgeted aware learnin rate is {lr}")
+                # logging.info(f"budgeted aware learning rate is {lr}")
                 for param_group in optimizer.param_groups:
                     param_group["lr"] = lr
 

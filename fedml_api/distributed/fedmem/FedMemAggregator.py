@@ -172,8 +172,9 @@ class FedMemAggregator(object):
             try:
                 model_mask_dict[name].data.view(-1)[prune_index] = 0.0
             except:
-                logging.info("######" + name+ "############")
+                logging.info("######" + name + "############")
                 logging.info(prune_index)
+
             weight.data.view(-1)[prune_index] = 0.0
             new_nonzero = model_mask_dict[name].sum().item()
             model_mask_dict[name] = model_mask_dict[name].to(self.device)
@@ -368,6 +369,7 @@ class FedMemAggregator(object):
             elif self.args.pruning == "FedMem":
                 self.grow_and_record_prune_idx(round, training_num)
             elif self.args.pruning == "FedMem_v2":
+                # self.update_penalty_index()
                 self.prune_penalty_index()
                 self.grow_and_record_prune_idx(round, training_num)
 

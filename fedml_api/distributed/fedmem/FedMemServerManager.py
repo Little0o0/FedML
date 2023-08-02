@@ -107,6 +107,7 @@ class FedMemServerManager(ServerManager):
                     if self.round_idx % self.args.delta_epochs == 0:
                         self.mode = 2
                         self.aggregator.trainer.update_num_growth()
+                        self.aggregator.update_penalty_index()
 
             num_growth = dict() if self.mode != 2 else self.aggregator.trainer.get_num_growth()
             mask_dict = dict() if self.mode not in [3, 4] else self.aggregator.trainer.get_model_mask_dict()
