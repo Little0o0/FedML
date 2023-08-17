@@ -79,7 +79,13 @@ class FedMemClientManager(ClientManager):
         elif self.mode == 4:
             self.trainer.trainer.lam = 0
             self.trainer.trainer.penalty_index = penalty_index
-            self.trainer.trainer.set_model_mask_dict(mask_dict)
+            # self.trainer.trainer.set_model_mask_dict(mask_dict)
+        elif self.mode == 5:
+            self.trainer.trainer.lam = 0
+        elif self.mode == 6:
+            self.trainer.trainer.set_num_growth(num_growth)
+            self.trainer.trainer.lam = 0
+            self.trainer.trainer.penalty_index = penalty_index
 
         self.round_idx += 1
         self.__train()

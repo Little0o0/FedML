@@ -36,6 +36,22 @@ class MyModelTrainer(ModelTrainer):
                 penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=1)
         return penalty
 
+    def update_penalty_index(self):
+        if not self.num_growth:
+            return
+        for name, weight in self.mask.module.named_parameters():
+            if name not in self.mask_dict:
+                continue
+            mask = self.mask_dict[name]
+            removed = self.num_growth[name] // 2
+            num_zeros = int((mask.numel() - mask.sum()).cpu().item())
+            k = num_zeros + removed
+            _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
+            _, old_idx = torch.sort(mask.cpu().flatten())
+            self.penalty_index[name] = \
+                torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+
+
     def set_num_growth(self, num_growth):
         self.num_growth = num_growth
 
@@ -77,7 +93,7 @@ class MyModelTrainer(ModelTrainer):
 
     def init_mask(self, args, mask_dict=None):
         # return mask_dict
-        if args.pruning in ["FedTiny", "FedDST", "FedMem", "FedMem_v2", "Mag"]:
+        if args.pruning in ["FedTiny", "FedDST", "FedMem", "FedMem_v2", "Mag", "FedDual"]:
             if self.mask is None:
                 optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
                 self.mask = Masking(
@@ -168,26 +184,23 @@ class MyModelTrainer(ModelTrainer):
         # train and update
         criterion = nn.CrossEntropyLoss().to(device)
 
+        alpha = args.lr * np.exp(args.round_idx / args.comm_round * np.log(args.lr / args.min_lr))
+
         if args.client_optimizer == "sgd":
-            optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr)
+            optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=alpha)
         else:
-            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=args.lr,
+            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=alpha,
                                          weight_decay=args.wd, amsgrad=True)
 
-        # lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.95)
-        lr_scheduler.step(epoch=args.round_idx)
-        alpha = lr_scheduler.get_lr()[0]
-        beta = args.min_lr
-        # lam = 0
-
-        if mode in [1, 2, 3, 4]:
+        if mode in [1, 2, 3, 4, 5, 6]:
             self.mask.optimizer = optimizer
             self.mask.to_module_device_()
             self.mask.apply_mask()
 
         for epoch in range(args.epochs):
-            if epoch == args.epochs//2 and mode == 2 and args.pruning == "FedDST":
+            # if mode == 4 and args.pruning == "FedMem_v2":
+            #     self.update_penalty_index()
+            if epoch == args.epochs // 2 and mode == 2 and args.pruning == "FedDST":
                 topk_grad = \
                     self.get_top_k_grad(train_data, device, self.num_growth, model, args)
 
@@ -215,51 +228,48 @@ class MyModelTrainer(ModelTrainer):
                 self.mask.mask_dict = self.mask_dict
                 self.mask.apply_mask()
 
+            self.lam = min(self.lam + 0.0001, args.lam)
             for batch_idx, (x, labels) in enumerate(train_data):
                 x, labels = x.to(device), labels.to(device)
                 model.zero_grad()
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
-                self.lam = min(self.lam + 0.00002, args.lam)
 
                 if mode == 4:
-                    penalty, num_layer = 0, 0
+                    penalty = 0
                     for name, weight in self.model.named_parameters():
                         if name not in self.penalty_index or \
-                                "conv" not in name or \
                                  len(self.penalty_index[name]) == 0:
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
                         try:
                             penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
-                            num_layer += 1
                         except:
                             logging.info("######### name is #######", name)
                             logging.info(self.penalty_index[name])
                             exit()
 
-                    p = 1 - (args.round_idx % args.comm_round + 1) / args.comm_round
-                    rate = (torch.sigmoid(penalty.cpu() / num_layer).item() - 0.5) * 2
                     # lam = max(p * rate, args.lam)
                     loss += self.lam * penalty
 
                     if args.budget_training:
-                        beta = p * rate * args.lr
-
-                lr = min(max(alpha, beta), 0.1)
-                # logging.info(f"budgeted aware learning rate is {lr}")
-                for param_group in optimizer.param_groups:
-                    param_group["lr"] = lr
+                        p = 1 - (args.round_idx % args.comm_round + 1) / args.comm_round
+                        rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
+                        beta = p * rate * args.lr * 2
+                        lr = min(max(alpha, beta), 0.1)
+                        # logging.info(f"budgeted aware learning rate is {lr}")
+                        for param_group in optimizer.param_groups:
+                            param_group["lr"] = lr
 
                 loss.backward()
 
-                if mode in [1, 2, 3, 4]:
+                if mode in [1, 2, 3, 4, 5, 6]:
                     self.mask.step()
                 else:
                     optimizer.step()
             # lr_scheduler.step()
 
-        if mode == 2:
+        if mode in [2, 6]:
             assert len(self.num_growth) != 0
             if args.forgetting_set and forgetting_stats is not None:
                 assert len(forgetting_stats) == len(train_data.dataset)
@@ -276,7 +286,7 @@ class MyModelTrainer(ModelTrainer):
                 self.candidate_set = self.get_top_k_grad(train_data,
                             device, self.num_growth, model, args)
 
-        if args.pruning in ["FedMem", "FedMem_v2"] and args.forgetting_set:
+        if args.pruning in ["FedMem", "FedMem_v2", "FedDual"] and args.forgetting_set:
             forgetting_stats = self.update_forgetting_set(train_data, device, model, args, forgetting_stats)
 
         return forgetting_stats

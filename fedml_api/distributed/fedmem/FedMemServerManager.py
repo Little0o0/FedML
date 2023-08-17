@@ -75,7 +75,20 @@ class FedMemServerManager(ServerManager):
             global_model_params = self.aggregator.aggregate(self.round_idx, self.mode)
             self.aggregator.test_on_server_for_all_clients(self.round_idx)
 
-            if self.mode == 1 \
+            if self.args.pruning == "FedDual" \
+                and self.mode == 1 and self.round_idx <= self.args.T_max \
+                and (self.round_idx + self.args.transfer_epochs) % self.args.delta_epochs == 0:
+
+                if self.args.transfer_epochs != 0:
+                    self.mode = 4
+                    self.aggregator.trainer.update_num_growth()
+                    self.aggregator.update_penalty_index()
+                else:
+                    self.mode = 6
+                    self.aggregator.trainer.update_num_growth()
+                    self.aggregator.update_penalty_index()
+
+            elif self.mode == 1 \
                 and self.round_idx <= self.args.T_max \
                 and self.round_idx != 0 \
                 and self.round_idx % self.args.delta_epochs == 0:
@@ -95,6 +108,8 @@ class FedMemServerManager(ServerManager):
                     self.mode = 4
                 elif self.args.pruning == "FedMem_v2":
                     self.mode = 4 if self.round_idx <= self.args.T_max else 3
+                elif self.args.pruning == "FedDual":
+                    self.mode = 3
 
             elif self.mode == 3:
                 self.mode = 1
@@ -109,9 +124,26 @@ class FedMemServerManager(ServerManager):
                         self.aggregator.trainer.update_num_growth()
                         self.aggregator.update_penalty_index()
 
-            num_growth = dict() if self.mode != 2 else self.aggregator.trainer.get_num_growth()
-            mask_dict = dict() if self.mode not in [3, 4] else self.aggregator.trainer.get_model_mask_dict()
-            penalty_index = dict() if self.mode != 4 else self.aggregator.trainer.penalty_index
+                elif self.args.pruning == "FedDual":
+                    if self.round_idx % self.args.delta_epochs != 0:
+                        self.mode = 5
+                    else:
+                        self.mode = 2
+                        self.aggregator.trainer.update_num_growth()
+
+            elif self.mode == 5:
+                if self.round_idx % self.args.delta_epochs != 0:
+                    self.mode = 5
+                else:
+                    self.mode = 2
+                    self.aggregator.trainer.update_num_growth()
+
+            elif self.mode == 6:
+                self.mode = 3
+
+            num_growth = dict() if self.mode not in [2, 6] else self.aggregator.trainer.get_num_growth()
+            mask_dict = dict() if self.mode not in [3] else self.aggregator.trainer.get_model_mask_dict()
+            penalty_index = dict() if self.mode not in [4, 5, 6] else self.aggregator.trainer.penalty_index
             # penalty_index = None
             # start the next round
             self.round_idx += 1

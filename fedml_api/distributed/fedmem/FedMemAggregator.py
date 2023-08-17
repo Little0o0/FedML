@@ -118,8 +118,11 @@ class FedMemAggregator(object):
                 continue
             mask = model_mask_dict[name]
             removed = num_growth[name]
+
+            half_removed = removed // 2
             num_zeros = int((mask.numel() - mask.sum()).cpu().item())
-            k = num_zeros + removed
+            k = num_zeros + half_removed
+
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
             _, old_idx = torch.sort(mask.cpu().flatten())
             self.trainer.penalty_index[name] = \
@@ -157,6 +160,59 @@ class FedMemAggregator(object):
         #     )
         #
         # model_mask.gather_statistics()
+
+    def mag_prune(self,):
+        model_mask = self.trainer.mask
+        model_mask_dict = self.trainer.get_model_mask_dict()
+        total_nonzero_new = 0
+        for name, weight in model_mask.module.named_parameters():
+            if name not in model_mask_dict or \
+                    name not in self.trainer.penalty_index or \
+                    len(self.trainer.penalty_index[name]) == 0:
+                continue
+
+            removed = len(self.trainer.penalty_index[name])
+            mask = model_mask_dict[name]
+            num_zeros = int((mask.numel() - mask.sum()).cpu().item())
+            k = num_zeros + removed
+            _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
+            _, old_idx = torch.sort(mask.cpu().flatten())
+            prune_index = torch.tensor(list(set(new_idx[:k].numpy()) - set(old_idx[:num_zeros].numpy())))
+            prune_index_penalty = self.trainer.penalty_index[name]
+            overlap_num = len(set(prune_index.tolist()) & set(prune_index_penalty.tolist()))
+            logging.info(f"The IOU rate of prune, layer {name} is {overlap_num/removed}")
+            try:
+                model_mask_dict[name].data.view(-1)[prune_index] = 0.0
+            except:
+                logging.info("######" + name + "############")
+                logging.info(prune_index)
+
+            weight.data.view(-1)[prune_index] = 0.0
+            new_nonzero = model_mask_dict[name].sum().item()
+            model_mask_dict[name] = model_mask_dict[name].to(self.device)
+            total_nonzero_new += new_nonzero
+
+        self.trainer.set_model_mask_dict(model_mask_dict)
+        self.trainer.mask.apply_mask()
+
+        model_mask.adjustments.append(
+            model_mask.baseline_nonzero - total_nonzero_new
+        )  # will be zero if deterministic
+        model_mask.adjusted_growth = (
+                0.25 * model_mask.adjusted_growth
+                + (0.75 * model_mask.adjustments[-1])
+                + np.mean(model_mask.adjustments)
+        )
+        if model_mask.stats.total_nonzero > 0:
+            logging.debug(
+                f"Nonzero before/after: {model_mask.stats.total_nonzero}/{total_nonzero_new}. "
+                f"Growth adjustment: {model_mask.adjusted_growth:.2f}."
+            )
+
+        model_mask.gather_statistics()
+
+
+
 
     def prune_penalty_index(self,):
         model_mask = self.trainer.mask
@@ -361,7 +417,7 @@ class FedMemAggregator(object):
         # update the global model which is cached at the server side
         self.set_global_model_params(averaged_params)
 
-        if mode == 2:
+        if mode in [2, 6]:
             if self.args.pruning == "FedTiny":
                 self.prune_and_grow(round, training_num)
             elif self.args.pruning == "FedDST":
@@ -370,10 +426,12 @@ class FedMemAggregator(object):
                 self.grow_and_record_prune_idx(round, training_num)
             elif self.args.pruning == "FedMem_v2":
                 # self.update_penalty_index()
-                self.prune_penalty_index()
+                self.mag_prune()
                 self.grow_and_record_prune_idx(round, training_num)
+            elif self.args.pruning == "FedDual":
+                self.prune_and_grow(round, training_num)
 
-        elif mode == 4:
+        elif mode in [4, 5, 6]:
             if len(self.trainer.penalty_index) > 0:
                 logging.info(f"penalty sum is {self.trainer.calculate_penalty()}")
 
@@ -384,6 +442,9 @@ class FedMemAggregator(object):
                     assert Exception("Bug here !")
 
             elif self.args.pruning == "FedMem_v2":
+                pass
+
+            elif self.args.pruning == "FedDual":
                 pass
 
         return averaged_params

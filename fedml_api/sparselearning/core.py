@@ -234,12 +234,20 @@ class Masking(object):
         self.module = module
         # logging.info(f"Dense FLOPs {self.dense_FLOPs:,}")
         for name, weight in self.module.named_parameters():
+
+            if name == "conv1.weight":
+                continue
             self.mask_dict[name] = torch.zeros_like(
                 weight, dtype=torch.float32, requires_grad=False
             )
+
         # Remove bias, batchnorms
         logging.info("Removing biases...")
         self.remove_weight_partial_name("bias")
+        logging.info("Removing fc...")
+        self.remove_weight_partial_name("fc")
+        logging.info("Removing classifier...")
+        self.remove_weight_partial_name("classifier")
         logging.info("Removing LayerNorm...")
         self.remove_weight_partial_name("ln")
         logging.info("Removing 2D batch norms...")

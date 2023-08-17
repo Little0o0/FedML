@@ -132,7 +132,7 @@ def add_args(parser):
     parser.add_argument("--lam", type=float, default=1.,
             help="lambda control the self-transfer learning")
 
-    parser.add_argument("--p", type=float, default=2.0,
+    parser.add_argument("--p", type=float, default=1.0,
             help="penalty value for self-transfer learning")
 
     parser.add_argument("--T_max", type=int, default=300)
