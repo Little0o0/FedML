@@ -228,14 +228,13 @@ class MyModelTrainer(ModelTrainer):
                 self.mask.mask_dict = self.mask_dict
                 self.mask.apply_mask()
 
-            self.lam = min(self.lam + 0.0001, args.lam)
             for batch_idx, (x, labels) in enumerate(train_data):
                 x, labels = x.to(device), labels.to(device)
                 model.zero_grad()
                 log_probs = model(x)
                 loss = criterion(log_probs, labels)
 
-                if mode == 4:
+                if mode in [4, 5, 6]:
                     penalty = 0
                     for name, weight in self.model.named_parameters():
                         if name not in self.penalty_index or \
@@ -250,16 +249,25 @@ class MyModelTrainer(ModelTrainer):
                             exit()
 
                     # lam = max(p * rate, args.lam)
+                    self.lam = min(self.lam + 0.001, args.lam)
                     loss += self.lam * penalty
 
                     if args.budget_training:
-                        p = 1 - (args.round_idx % args.comm_round + 1) / args.comm_round
+                        p = (args.round_idx % args.delta_epochs) / args.delta_epochs
                         rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
-                        beta = p * rate * args.lr * 2
+                        # beta = (1 - p) * rate * args.lr
+                        beta = (2 - 2 * p) / (2 - p) * rate * args.lr
                         lr = min(max(alpha, beta), 0.1)
                         # logging.info(f"budgeted aware learning rate is {lr}")
                         for param_group in optimizer.param_groups:
                             param_group["lr"] = lr
+
+                if args.budget_training and args.round_idx < args.T_max:
+                    p = (args.round_idx % args.delta_epochs) / args.delta_epochs
+                    beta = (2 - 2*p)/(2-p) * args.lr
+                    lr = min(max(alpha, beta), 0.1)
+                    for param_group in optimizer.param_groups:
+                        param_group["lr"] = lr
 
                 loss.backward()
 
