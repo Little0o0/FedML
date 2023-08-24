@@ -250,7 +250,7 @@ class MyModelTrainer(ModelTrainer):
                             exit()
 
                     # lam = max(p * rate, args.lam)
-                    self.lam = min(self.lam + 0.001, args.lam)
+                    self.lam = min(self.lam + 0.0002, args.lam)
                     loss += self.lam * penalty
 
                     if args.budget_training:
@@ -264,12 +264,12 @@ class MyModelTrainer(ModelTrainer):
                         for param_group in optimizer.param_groups:
                             param_group["lr"] = lr
 
-                if mode == 3 and args.budget_training and args.round_idx <= args.T_max:
-                    p = (args.round_idx % args.delta_epochs) / args.delta_epochs
-                    beta = (2 - 2*p)/(2-p) * args.lr
-                    lr = max(alpha, beta)
-                    for param_group in optimizer.param_groups:
-                        param_group["lr"] = lr
+                # if mode == 3 and args.budget_training and args.round_idx <= args.T_max:
+                #     p = (args.round_idx % args.delta_epochs) / args.delta_epochs
+                #     beta = (2 - 2*p)/(2-p) * args.lr
+                #     lr = max(alpha, beta)
+                #     for param_group in optimizer.param_groups:
+                #         param_group["lr"] = lr
 
                 loss.backward()
 
