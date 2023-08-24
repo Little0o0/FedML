@@ -259,8 +259,9 @@ class MyModelTrainer(ModelTrainer):
                         rate = max(args.min_lr, min(penalty.cpu().item(), 1))
                         # beta = (1 - p) * rate * args.lr
                         beta = (2 - 2 * p) / (2 - p) * rate * args.lr
-                        lr = min(max(alpha, beta), args.min_lr)
-                        logging.info(f"budgeted aware learning rate is {lr}")
+                        lr = max(max(alpha, beta), args.min_lr)
+                        logging.info(f"rate is {rate}")
+                        logging.info(f"alpha is {alpha}, beta is {beta}, budgeted aware learning rate is {lr}")
                         for param_group in optimizer.param_groups:
                             param_group["lr"] = lr
 
