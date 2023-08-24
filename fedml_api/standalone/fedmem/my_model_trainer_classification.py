@@ -184,7 +184,7 @@ class MyModelTrainer(ModelTrainer):
         # train and update
         criterion = nn.CrossEntropyLoss().to(device)
 
-        alpha = args.lr * np.exp(args.round_idx / args.comm_round * np.log(args.lr / args.min_lr))
+        alpha = args.lr * np.exp(args.round_idx / args.comm_round * np.log( args.min_lr / args.lr))
 
         if args.client_optimizer == "sgd":
             optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=alpha)
