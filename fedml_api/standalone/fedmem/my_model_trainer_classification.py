@@ -235,6 +235,7 @@ class MyModelTrainer(ModelTrainer):
                 loss = criterion(log_probs, labels)
 
                 if mode in [4, 5, 6]:
+                    self.update_penalty_index()
                     penalty = 0
                     for name, weight in self.model.named_parameters():
                         if name not in self.penalty_index or \
@@ -254,18 +255,19 @@ class MyModelTrainer(ModelTrainer):
 
                     if args.budget_training:
                         p = (args.round_idx % args.delta_epochs) / args.delta_epochs
-                        rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
+                        # rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
+                        rate = max(args.min_lr, min(penalty.cpu().item(), 1))
                         # beta = (1 - p) * rate * args.lr
                         beta = (2 - 2 * p) / (2 - p) * rate * args.lr
-                        lr = min(max(alpha, beta), 0.1)
-                        # logging.info(f"budgeted aware learning rate is {lr}")
+                        lr = min(max(alpha, beta), args.min_lr)
+                        logging.info(f"budgeted aware learning rate is {lr}")
                         for param_group in optimizer.param_groups:
                             param_group["lr"] = lr
 
-                if args.budget_training and args.round_idx < args.T_max:
+                if mode == 3 and args.budget_training and args.round_idx <= args.T_max:
                     p = (args.round_idx % args.delta_epochs) / args.delta_epochs
                     beta = (2 - 2*p)/(2-p) * args.lr
-                    lr = min(max(alpha, beta), 0.1)
+                    lr = max(alpha, beta)
                     for param_group in optimizer.param_groups:
                         param_group["lr"] = lr
 

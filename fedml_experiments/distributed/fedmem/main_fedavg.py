@@ -103,7 +103,7 @@ def add_args(parser):
 
     parser.add_argument("--delta_epochs", type=int, default=10)
 
-    parser.add_argument("--transfer_epochs", type=int, default=0)
+    parser.add_argument("--transfer_epochs", type=int, default=8)
 
     parser.add_argument("--dropit", type=int, default=1)
 
@@ -129,10 +129,10 @@ def add_args(parser):
 
     parser.add_argument("--NoBN", type=int, default=1)
 
-    parser.add_argument("--lam", type=float, default=1.,
+    parser.add_argument("--lam", type=float, default=0.1,
             help="lambda control the self-transfer learning")
 
-    parser.add_argument("--p", type=float, default=1.0,
+    parser.add_argument("--p", type=float, default=2.0,
             help="penalty value for self-transfer learning")
 
     parser.add_argument("--T_max", type=int, default=300)
