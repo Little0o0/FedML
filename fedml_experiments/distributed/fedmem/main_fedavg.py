@@ -83,7 +83,7 @@ def add_args(parser):
 
     parser.add_argument("--lr", type=float, default=0.1, metavar="LR", help="learning rate (default: 0.1)")
 
-    parser.add_argument("--min_lr", type=float, default=0.001,)
+    parser.add_argument("--min_lr", type=float, default=0.01,)
 
     parser.add_argument("--wd", help="weight decay parameter;", type=float, default=0.0001)
 
