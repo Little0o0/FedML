@@ -251,9 +251,10 @@ class MyModelTrainer(ModelTrainer):
 
                     # lam = max(p * rate, args.lam)
                     self.lam = min(self.lam + 0.0002, args.lam)
+                    logging.info("######### lam is #######", self.lam)
                     loss += self.lam * penalty
 
-                    if args.budget_training:
+                    if args.budget_training and penalty != 0:
                         p = (args.round_idx % args.delta_epochs) / args.delta_epochs
                         # rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
                         rate = max(args.min_lr, min(penalty.cpu().item(), 1))
