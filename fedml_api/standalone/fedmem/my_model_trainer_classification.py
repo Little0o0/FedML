@@ -43,7 +43,7 @@ class MyModelTrainer(ModelTrainer):
             if name not in self.mask_dict:
                 continue
             mask = self.mask_dict[name]
-            removed = self.num_growth[name]
+            removed = self.num_growth[name] // 2
             num_zeros = int((mask.numel() - mask.sum()).cpu().item())
             k = num_zeros + removed
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
@@ -246,22 +246,21 @@ class MyModelTrainer(ModelTrainer):
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
                         try:
-                            # penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
-                            layer_sum = torch.sum(torch.abs(weight.flatten()[self.penalty_index[name]]))
-                            layer_num = len(self.penalty_index[name])
-                            penalty += layer_sum / layer_num
+                            penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
                             # sum += torch.sum(torch.abs(weight.flatten()[self.penalty_index[name]]))
-                            # num += len(self.penalty_index[name])
+                            num += len(self.penalty_index[name])
                         except:
                             logging.info("######### name is #######", name)
                             logging.info(self.penalty_index[name])
                             exit()
 
                     # lam = max(p * rate, args.lam)
-                    self.lam = min(self.lam + 0.0002, args.lam)
-
-                    logging.info("######### mean penalty is #########")
-                    logging.info(penalty)
+                    self.lam = min(self.lam + args.delta_lam, args.lam)
+                    if num != 0:
+                        logging.info("######### mean penalty is #########")
+                        logging.info(penalty.cpu().item()/num)
+                        logging.info("overall penalty is")
+                        logging.info(penalty.cpu().item())
 
                     logging.info("######### lam is #######")
                     logging.info(self.lam)
@@ -273,7 +272,7 @@ class MyModelTrainer(ModelTrainer):
                         else:
                             p = ((args.round_idx + args.transfer_epochs) % args.delta_epochs) / args.delta_epochs
                         # rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
-                        rate = max(args.min_lr, min(sum/num, 10))
+                        rate = max(args.min_lr, min(penalty.cpu().item()/num, 10))
                         # beta = (1 - p) * rate * args.lr
                         beta = (2 - 2 * p) / (2 - p) * rate * args.lr
                         lr = max(max(alpha, beta), args.min_lr)
