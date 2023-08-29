@@ -37,7 +37,6 @@ class FedMemClientManager(ClientManager):
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
         self.mode = msg_params.get(MyMessage.MSG_ARG_KEY_MODE)
         mask_dict = msg_params.get(MyMessage.MSG_ARG_KEY_MASK_DICT)
-        self.
 
         if self.args.is_mobile == 1:
             global_model_params = transform_list_to_tensor(global_model_params)
