@@ -43,7 +43,7 @@ class MyModelTrainer(ModelTrainer):
             if name not in self.mask_dict:
                 continue
             mask = self.mask_dict[name]
-            removed = self.num_growth[name] // 2
+            removed = self.num_growth[name]
             num_zeros = int((mask.numel() - mask.sum()).cpu().item())
             k = num_zeros + removed
             _, new_idx = torch.sort(torch.abs(weight.cpu().flatten()))
@@ -246,9 +246,12 @@ class MyModelTrainer(ModelTrainer):
                             continue
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
                         try:
-                            penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
-                            sum += torch.sum(torch.abs(weight.flatten()[self.penalty_index[name]]))
-                            num += len(self.penalty_index[name])
+                            # penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                            layer_sum = torch.sum(torch.abs(weight.flatten()[self.penalty_index[name]]))
+                            layer_num = len(self.penalty_index[name])
+                            penalty += layer_sum / layer_num
+                            # sum += torch.sum(torch.abs(weight.flatten()[self.penalty_index[name]]))
+                            # num += len(self.penalty_index[name])
                         except:
                             logging.info("######### name is #######", name)
                             logging.info(self.penalty_index[name])
@@ -256,9 +259,9 @@ class MyModelTrainer(ModelTrainer):
 
                     # lam = max(p * rate, args.lam)
                     self.lam = min(self.lam + 0.0002, args.lam)
-                    if num != 0:
-                        logging.info("######### mean penalty is #########")
-                        logging.info(sum/num)
+
+                    logging.info("######### mean penalty is #########")
+                    logging.info(penalty)
 
                     logging.info("######### lam is #######")
                     logging.info(self.lam)
