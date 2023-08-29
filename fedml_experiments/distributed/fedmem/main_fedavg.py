@@ -103,11 +103,13 @@ def add_args(parser):
 
     parser.add_argument("--delta_epochs", type=int, default=10)
 
-    parser.add_argument("--transfer_epochs", type=int, default=2)
+    parser.add_argument("--transfer_epochs", type=int, default=0)
 
     parser.add_argument("--dropit", type=int, default=1)
 
     parser.add_argument("--act_scaling", type=int, default=0)
+
+    parser.add_argument("--fix_penalty", type=int, default=0)
 
     parser.add_argument("--forgetting_set", type=int, default=0,
                         help="whether create forgetting set")

@@ -235,8 +235,11 @@ class MyModelTrainer(ModelTrainer):
                 loss = criterion(log_probs, labels)
 
                 if mode in [4, 5, 6]:
-                    self.update_penalty_index()
+                    if not args.fix_penalty:
+                        self.update_penalty_index()
                     penalty = 0
+                    sum = 0
+                    num = 0
                     for name, weight in self.model.named_parameters():
                         if name not in self.penalty_index or \
                                  len(self.penalty_index[name]) == 0:
@@ -244,6 +247,8 @@ class MyModelTrainer(ModelTrainer):
                         # loss += 0.01 * torch.norm(weight.flatten()[self.penalty_index[name]])
                         try:
                             penalty += torch.norm(weight.flatten()[self.penalty_index[name]], p=args.p)
+                            sum += torch.sum(torch.abs(weight.flatten()[self.penalty_index[name]]))
+                            num += len(self.penalty_index[name])
                         except:
                             logging.info("######### name is #######", name)
                             logging.info(self.penalty_index[name])
@@ -251,13 +256,21 @@ class MyModelTrainer(ModelTrainer):
 
                     # lam = max(p * rate, args.lam)
                     self.lam = min(self.lam + 0.0002, args.lam)
-                    logging.info("######### lam is #######", self.lam)
+                    if num != 0:
+                        logging.info("######### mean penalty is #########")
+                        logging.info(sum/num)
+
+                    logging.info("######### lam is #######")
+                    logging.info(self.lam)
                     loss += self.lam * penalty
 
                     if args.budget_training and penalty != 0:
-                        p = (args.round_idx % args.delta_epochs) / args.delta_epochs
+                        if args.transfer_epochs == 0:
+                            p = 0
+                        else:
+                            p = ((args.round_idx + args.transfer_epochs) % args.delta_epochs) / args.delta_epochs
                         # rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
-                        rate = max(args.min_lr, min(penalty.cpu().item(), 1))
+                        rate = max(args.min_lr, min(sum/num, 10))
                         # beta = (1 - p) * rate * args.lr
                         beta = (2 - 2 * p) / (2 - p) * rate * args.lr
                         lr = max(max(alpha, beta), args.min_lr)
