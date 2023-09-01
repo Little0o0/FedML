@@ -256,14 +256,15 @@ class MyModelTrainer(ModelTrainer):
 
                     # lam = max(p * rate, args.lam)
                     self.lam = min(self.lam + args.delta_lam, args.lam)
-                    if num != 0:
+                    if num != 0 and self.id == 1:
                         logging.info("######### mean penalty is #########")
                         logging.info(penalty.cpu().item()/num)
                         logging.info("overall penalty is")
                         logging.info(penalty.cpu().item())
 
-                    logging.info("######### lam is #######")
-                    logging.info(self.lam)
+                    if self.id == 1:
+                        logging.info("######### lam is #######")
+                        logging.info(self.lam)
                     loss += self.lam * penalty
 
                     if args.budget_training and penalty != 0:
@@ -272,12 +273,13 @@ class MyModelTrainer(ModelTrainer):
                         else:
                             p = ((args.round_idx + args.transfer_epochs) % args.delta_epochs) / args.delta_epochs
                         # rate = (torch.sigmoid(penalty.cpu()).item() - 0.5) * 2
-                        rate = max(args.min_lr, min(penalty.cpu().item()/num, 10))
+                        rate = max(args.min_lr, min(penalty.cpu().item(), 10))
                         # beta = (1 - p) * rate * args.lr
                         beta = (2 - 2 * p) / (2 - p) * rate * args.lr
                         lr = max(max(alpha, beta), args.min_lr)
-                        logging.info(f"rate is {rate}")
-                        logging.info(f"alpha is {alpha}, beta is {beta}, budgeted aware learning rate is {lr}")
+                        if self.id == 1:
+                            logging.info(f"rate is {rate}")
+                            logging.info(f"alpha is {alpha}, beta is {beta}, budgeted aware learning rate is {lr}")
                         for param_group in optimizer.param_groups:
                             param_group["lr"] = lr
 
