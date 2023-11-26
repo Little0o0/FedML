@@ -13,7 +13,7 @@ import logging
 import torch
 import torch.nn as nn
 
-__all__ = ['ResNet', 'resnet18', 'resnet34',  'resnet56', 'resnet110']
+__all__ = ['ResNet', 'resnet18', 'resnet34',  'resnet50', 'resnet110']
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -210,14 +210,14 @@ def resnet34(class_num=10, **kwargs):
     """
     return ResNet(BasicBlock, [3, 4, 6, 3], class_num,  **kwargs)
 
-def resnet56(class_num, pretrained=False, path=None, **kwargs):
+def resnet50(class_num, pretrained=False, path=None, **kwargs):
     """
     Constructs a ResNet-110 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained.
     """
-    model = ResNet(Bottleneck, [6, 6, 6], class_num, **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 6, 3], class_num, **kwargs)
     if pretrained:
         checkpoint = torch.load(path)
         state_dict = checkpoint['state_dict']

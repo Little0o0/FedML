@@ -129,7 +129,7 @@ def add_args(parser):
     parser.add_argument("--init_sparse", type=str, default="erdos-renyi-kernel",
                         help="[erdos-renyi|uniform-magnitude|erdos-renyi-kernel]")
 
-    parser.add_argument("--NoBN", type=int, default=1)
+    parser.add_argument("--NoBN", type=int, default=0)
 
     parser.add_argument("--lam", type=float, default=0.01,
             help="lambda control the self-transfer learning")
@@ -406,21 +406,20 @@ def load_data(args, dataset_name):
 
 def create_model(args, model_name, output_dim):
 
-    if args.NoBN:
-        # from fedml_api.model.cv.resnet_LN import resnet18, resnet56
-        # if args.act_scaling:
-        from fedml_api.model.cv.resnet_bnfree import nf_resnet18 as resnet18
-        from fedml_api.model.cv.mobilenetv2_bnfree import nf_mobilenet_v2 as mobilenet_v2
-        from fedml_api.model.cv.mobilenet_v3_bnfree import MobileNetV3
-        # else:
-        #     from fedml_api.model.cv.resnet_LN import resnet18, resnet56
-        #     from fedml_api.model.cv.resnet_NoBN import resnet18, resnet56
-        #     from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
-        #     from fedml_api.model.cv.mobilenet_v3_NoBN import MobileNetV3
-    else:
-        from fedml_api.model.cv.resnet import resnet18, resnet56
+    if not args.NoBN:
+        from fedml_api.model.cv.resnet import resnet18, resnet34, resnet50
         from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
         from fedml_api.model.cv.mobilenet_v3 import MobileNetV3
+    elif args.act_scaling:
+        from fedml_api.model.cv.resnet_bnfree import nf_resnet18 as resnet18
+        from fedml_api.model.cv.resnet_bnfree import nf_resnet34 as resnet34
+        from fedml_api.model.cv.resnet_bnfree import nf_resnet50 as resnet50
+        from fedml_api.model.cv.mobilenetv2_bnfree import nf_mobilenet_v2 as mobilenet_v2
+    else:
+        from fedml_api.model.cv.resnet_NoBN import resnet18, resnet34, resnet50
+        from fedml_api.model.cv.mobilenetv2 import mobilenet_v2
+        from fedml_api.model.cv.mobilenet_v3_NoBN import MobileNetV3
+
 
 
     logging.debug("create_model. model_name = %s, output_dim = %s" % (model_name, output_dim))
@@ -448,8 +447,10 @@ def create_model(args, model_name, output_dim):
         model = RNN_StackOverFlow()
     elif model_name == "resnet18":
         model = resnet18(class_num=output_dim)
-    elif model_name == "resnet56":
-        model = resnet56(class_num=output_dim)
+    elif model_name == "resnet34":
+        model = resnet34(class_num=output_dim)
+    elif model_name == "resnet50":
+        model = resnet50(class_num=output_dim)
     elif model_name == "mobilenet":
         model = mobilenet(class_num=output_dim)
     # TODO
